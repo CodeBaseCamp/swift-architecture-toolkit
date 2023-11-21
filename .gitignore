@@ -1,0 +1,5 @@
+Package.resolved
+/.vscode/*
+/.build
+/Packages
+/.swiftpm/*
