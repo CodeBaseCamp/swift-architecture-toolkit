@@ -101,7 +101,7 @@ In a Swift package, add `ART` to `Package.swift`:
 
 ```swift
 dependencies: [
-  .package(name: "swift-architecture-toolkit", path: "../swift-architecture-toolkit"),
+  .package(url: "https://github.com/CodeBaseCamp/swift-architecture-toolkit", branch: "master"),
 ],
 targets: [
   .target(
