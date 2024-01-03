@@ -1,0 +1,27 @@
+version: 2.1
+
+orbs:
+  macos: circleci/macos@2
+
+parameters:
+  xcode-version:
+    type: string
+    default: "15.1.0"
+
+jobs:
+  build-and-test-architecture-toolkit-job:
+    macos:
+      xcode: << pipeline.parameters.xcode-version >>
+    resource_class: macos.x86.medium.gen2
+
+    steps:
+      - checkout
+      - run:
+          name: Build Architecture Toolkit Package
+          command: |
+            swift test -c release -Xswiftc -enable-testing
+
+workflows:
+  build-and-test-workflow:
+    jobs:
+      - build-and-test-architecture-toolkit-job
