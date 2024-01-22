@@ -47,8 +47,8 @@ private final class TestObject {
   }
 }
 
-final class ARTSideEffectPerformerSpec: QuickSpec {
-  override func spec() {
+final class SideEffectPerformerSpec: QuickSpec {
+  override class func spec() {
     let dispatchQueues: [DispatchQueueID: DispatchQueue] = [
       .mainThread: DispatchQueue.main,
       .backgroundThread: DispatchQueue(label: "Background"),

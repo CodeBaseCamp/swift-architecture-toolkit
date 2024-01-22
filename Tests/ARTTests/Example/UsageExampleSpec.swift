@@ -84,7 +84,7 @@ class App {
 }
 
 final class UsageExampleSpec: QuickSpec {
-  override func spec() {
+  override class func spec() {
     context("minimal example application") {
       context("setup") {
         it("sets up application with logic module") {

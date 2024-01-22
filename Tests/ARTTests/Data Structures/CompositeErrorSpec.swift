@@ -7,7 +7,7 @@ import Nimble
 import Quick
 
 final class CompositeErrorSpec: QuickSpec {
-  override func spec() {
+  override class func spec() {
     context("initialization") {
       it("initializes as simple error") {
         _ = CompositeError<TestError>.simpleError(.inFileSystemScope(.creationOfFile(path: "foo")))

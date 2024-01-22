@@ -23,7 +23,7 @@ extension FakeEnum: StateProtocol {
 }
 
 final class ModelSpec: QuickSpec {
-  override func spec() {
+  override class func spec() {
     context("observers") {
       context("key path observer") {
         var initialState: FakeState!

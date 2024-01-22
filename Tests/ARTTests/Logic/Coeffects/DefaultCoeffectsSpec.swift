@@ -7,7 +7,7 @@ import Nimble
 import Quick
 
 final class DefaultCoeffectsSpec: QuickSpec {
-  override func spec() {
+  override class func spec() {
     context("initialization") {
       it("initializes with the given closures") {
         let coeffects = DefaultCoeffects(dateClosure: { Date.distantPast },

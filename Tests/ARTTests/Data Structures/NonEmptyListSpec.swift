@@ -7,7 +7,7 @@ import Nimble
 import Quick
 
 final class NonEmptyListSpec: QuickSpec {
-  override func spec() {
+  override class func spec() {
     context("initialization") {
       it("initializes with single element") {
         _ = NonEmptyList.single(0)

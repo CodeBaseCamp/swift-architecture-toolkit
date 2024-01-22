@@ -13,7 +13,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/Quick/Nimble.git", branch: "main"),
-    .package(url: "https://github.com/Quick/Quick.git", branch: "master"),
+    .package(url: "https://github.com/Quick/Quick.git", branch: "main"),
     .package(url: "https://github.com/pointfreeco/swift-case-paths", branch: "main"),
   ],
   targets: [

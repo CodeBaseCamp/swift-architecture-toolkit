@@ -166,7 +166,7 @@ class FakeUserDefaults: UserDefaults {
 }
 
 final class StoreSpec: QuickSpec {
-  override func spec() {
+  override class func spec() {
     var initialStateA: FakeStateA!
     var coeffects: TestCoeffects!
     var reducerA: Reducer<FakeStateA, FakeRequestA, TestCoeffects>!

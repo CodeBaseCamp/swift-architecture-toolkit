@@ -32,7 +32,7 @@ enum Selection: Equatable {
 }
 
 final class PropertyPathSpec: QuickSpec {
-  override func spec() {
+  override class func spec() {
     context("key paths") {
       struct Baz: Equatable {
         var string = "qux"

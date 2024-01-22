@@ -48,7 +48,7 @@ struct FakeModelView: View, ModelView {
 }
 
 final class ModelViewSpec: QuickSpec {
-  override func spec() {
+  override class func spec() {
     var view: FakeModelView!
 
     context("model observations") {
