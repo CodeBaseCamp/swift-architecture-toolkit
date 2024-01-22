@@ -13,13 +13,12 @@ extension TestRequest: HumanReadable {
 }
 
 private typealias TestCompositeSideEffect =
-  CompositeSideEffect<TestSideEffect, TestError, TestBackgroundDispatchQueueID>
+  TaskBasedCompositeSideEffect<TestSideEffect, TestError>
 
 private typealias TestSideEffectPerformer = TaskBasedSideEffectPerformer<
   TestSideEffect,
   TestError,
-  TestCoeffects,
-  TestBackgroundDispatchQueueID
+  TestCoeffects
 >
 
 private typealias TestSideEffectCompletionIndication =
@@ -29,7 +28,6 @@ private final class TestObject {
   var receivedSideEffects = [TestSideEffect]()
   var successOrFailureMapping = [(TestSideEffect, TestError)]()
   var isRunningOnMainThread = [Bool]()
-  static let dispatchQueue = DispatchQueue(label: "RandomDispatchQueue")
 
   func receivedSideEffects() async -> [TestSideEffect] {
     return self.receivedSideEffects
@@ -73,10 +71,6 @@ final class TaskBasedSideEffectPerformerSpec: AsyncSpec {
       let object = TestObject()
       testObject = object
       performer = .init(
-        actors: [
-          .mainThread: MainActor.shared,
-          .backgroundThread: BackgroundActor(),
-        ], 
         sideEffectClosure: object.sideEffectClosure
       )
       coeffects = .init()
@@ -102,20 +96,13 @@ final class TaskBasedSideEffectPerformerSpec: AsyncSpec {
         .inFileSystemScope(.creationOfFile(atPath: "foo", with: Data()))
 
       context("without follow-up side effects and wrapping error") {
-        let compositeSideEffect: TestCompositeSideEffect = .only(sideEffect, on: .mainThread)
+        let compositeSideEffect: TestCompositeSideEffect = .only(sideEffect)
 
         it("performs side effect") {
           await performer.perform(compositeSideEffect, using: coeffects)
 
           let receivedSideEffects = await testObject.receivedSideEffects()
           expect(receivedSideEffects) == [sideEffect]
-        }
-
-        it("performs side effect on correct thread") {
-          await performer.perform(compositeSideEffect, using: coeffects)
-
-          let isRunningOnMainThread = await testObject.isRunningOnMainThread()
-          expect(isRunningOnMainThread).to(equal([true]))
         }
 
         context("success") {
@@ -142,21 +129,13 @@ final class TaskBasedSideEffectPerformerSpec: AsyncSpec {
       }
 
       context("without follow-up side effects but with wrapping error") {
-        let compositeSideEffect: TestCompositeSideEffect =
-          .only(sideEffect, on: .mainThread)
+        let compositeSideEffect: TestCompositeSideEffect = .only(sideEffect)
 
         it("performs side effect") {
           await performer.perform(compositeSideEffect, using: coeffects)
 
           let receivedSideEffects = await testObject.receivedSideEffects()
           expect(receivedSideEffects).to(equal([sideEffect]))
-        }
-
-        it("performs side effect on correct thread") {
-          await performer.perform(compositeSideEffect, using: coeffects)
-
-          let isRunningOnMainThread = await testObject.isRunningOnMainThread()
-          expect(isRunningOnMainThread).to(equal([true]))
         }
 
         context("success") {

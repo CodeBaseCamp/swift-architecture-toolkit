@@ -3,15 +3,13 @@
 import ART
 
 extension TaskBasedApp {
-  typealias BackgroundDispatchQueueID = TestBackgroundDispatchQueueID
   typealias State = App.State
   typealias Request = App.Request
   typealias SideEffect = App.SideEffect
   typealias Coeffects = App.Coeffects
   typealias AppError = App.AppError
   typealias MainView = App.MainView
-  typealias CompositeSideEffect =
-    ART.CompositeSideEffect<SideEffect, AppError, BackgroundDispatchQueueID>
+  typealias CompositeSideEffect = TaskBasedCompositeSideEffect<SideEffect, AppError>
   typealias LogicModule = ART.TaskBasedLogicModule<
     State,
     Request,

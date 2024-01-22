@@ -11,7 +11,6 @@ public actor TaskBasedUIEventLogicModule<
 > {
   public typealias SideEffectError = SideEffectPerformer.SideEffectError
   public typealias Coeffects = SideEffectPerformer.Coeffects
-  public typealias BackgroundDispatchQueueID = SideEffectPerformer.BackgroundDispatchQueueID
   public typealias Module = TaskBasedLogicModule<State, Request, SideEffectPerformer>
 
   private let logicModule: Module
@@ -53,8 +52,7 @@ public actor TaskBasedUIEventLogicModule<
 
 public extension TaskBasedLogicModule {
   struct ExecutionOptions {
-    public typealias CompositeSideEffect =
-      ART.CompositeSideEffect<SideEffect, SideEffectError, BackgroundDispatchQueueID>
+    public typealias CompositeSideEffect = TaskBasedCompositeSideEffect<SideEffect, SideEffectError>
     public typealias CompletionIndication = SideEffectPerformer.Result<SideEffectError>
 
     public let handleInSingleTransaction: ([Request]) -> Void
@@ -96,6 +94,10 @@ extension TaskBasedLogicModule.ExecutionOptions: TaskBasedExecutableExecutor {
     Task {
       _ = await self.perform(sideEffect)
     }
+  }
+
+  public func perform(_ sideEffect: SideEffect) async -> CompletionIndication {
+    return await self.perform(.only(sideEffect))
   }
 
   public nonisolated func handleInSingleTransaction(_ requests: [Request]) {

@@ -13,12 +13,9 @@ public actor TaskBasedLogicModule<
   public typealias SideEffect = SideEffectPerformer.SideEffect
   public typealias SideEffectError = SideEffectPerformer.SideEffectError
   public typealias Coeffects = SideEffectPerformer.Coeffects
-  public typealias BackgroundDispatchQueueID = SideEffectPerformer.BackgroundDispatchQueueID
-  public typealias CompositeSideEffect =
-    ART.CompositeSideEffect<SideEffect, SideEffectError, BackgroundDispatchQueueID>
+  public typealias CompositeSideEffect = TaskBasedCompositeSideEffect<SideEffect, SideEffectError>
   public typealias Model = ART.Model<State, Request, Coeffects>
-  public typealias Executable =
-    TaskBasedExecutable<Request, SideEffect, SideEffectError, BackgroundDispatchQueueID>
+  public typealias Executable = TaskBasedExecutable<Request, SideEffect, SideEffectError>
 
   /// Underlying model provided upon initialization.
   private let model: Model
@@ -90,6 +87,15 @@ public actor TaskBasedLogicModule<
     _ sideEffect: CompositeSideEffect
   ) async -> SideEffectPerformer.Result<SideEffectError> {
     return await self.sideEffectPerformer.perform(sideEffect, using: self.coeffects)
+  }
+
+  /// Returns a task performing the given `sideEffect`. Upon completion of the side effect, the
+  /// given `completion` closure is invoked with the corresponding completion indication.
+  @discardableResult
+  public func perform(
+    _ sideEffect: SideEffect
+  ) async -> SideEffectPerformer.Result<SideEffectError> {
+    return await self.sideEffectPerformer.perform(.only(sideEffect), using: self.coeffects)
   }
 
   public nonisolated func handleInSingleTransaction(_ requests: [Request]) {

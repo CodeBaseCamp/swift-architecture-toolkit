@@ -7,10 +7,8 @@ public protocol TaskBasedExecutableExecutor {
   associatedtype Request: RequestProtocol
   associatedtype SideEffect: SideEffectProtocol
   associatedtype SideEffectError: ErrorProtocol
-  associatedtype BackgroundDispatchQueueID: BackgroundDispatchQueueIDProtocol
 
-  typealias Executable = 
-    TaskBasedExecutable<Request, SideEffect, SideEffectError, BackgroundDispatchQueueID>
+  typealias Executable =  TaskBasedExecutable<Request, SideEffect, SideEffectError>
 
   /// Serially executes the given `executables`.
   func executeSequentially(_ executables: [Executable]) async

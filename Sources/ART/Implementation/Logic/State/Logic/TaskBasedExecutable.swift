@@ -10,11 +10,9 @@ import Foundation
 public struct TaskBasedExecutable<
   Request: RequestProtocol,
   SideEffect: SideEffectProtocol,
-  Error: ErrorProtocol,
-  BackgroundDispatchQueueID: BackgroundDispatchQueueIDProtocol
+  Error: ErrorProtocol
 > {
-  public typealias ExecutableSideEffect =
-    CompositeSideEffect<SideEffect, Error, BackgroundDispatchQueueID>
+  public typealias ExecutableSideEffect = TaskBasedCompositeSideEffect<SideEffect, Error>
 
   let initialRequests: [Request]
 
@@ -36,8 +34,8 @@ public struct TaskBasedExecutable<
 public extension TaskBasedExecutable {
   func withMappedRequest<NewRequest: RequestProtocol>(
     _ closure: @escaping (Request) -> NewRequest
-  ) -> TaskBasedExecutable<NewRequest, SideEffect, Error, BackgroundDispatchQueueID> {
-    return TaskBasedExecutable<NewRequest, SideEffect, Error, BackgroundDispatchQueueID>(
+  ) -> TaskBasedExecutable<NewRequest, SideEffect, Error> {
+    return TaskBasedExecutable<NewRequest, SideEffect, Error>(
       initialRequests: self.initialRequests.map(closure),
       sideEffect: self.sideEffect,
       finalRequests: self.finalRequests.map(closure)

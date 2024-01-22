@@ -16,7 +16,6 @@ import Quick
 /// c) sending requests and/or side effects to the `LogicModule` due to changes of the system state
 ///    (e.g., due to the app transitioning into the background) and/or incoming events/requests from
 ///    external means of interaction, such as an API.
-@MainActor
 class TaskBasedApp {
   private let logicModule: LogicModule
 
@@ -69,13 +68,13 @@ final class TaskBasedUsageExampleSpec: AsyncSpec {
     context("minimal example application") {
       context("setup") {
         it("sets up application with logic module") {
-          let logicModule: TaskBasedApp.LogicModule = await .newInstance()
-          _ = await TaskBasedApp(with: logicModule)
+          let logicModule: TaskBasedApp.LogicModule = .newInstance()
+          _ = TaskBasedApp(with: logicModule)
         }
 
         it("sets up application with logic module and UI") {
           let (logicModule, view, observer) = await TaskBasedApp.LogicModule.newInstanceWithUI()
-          _ = await TaskBasedApp(with: logicModule)
+          _ = TaskBasedApp(with: logicModule)
 
           connect(view)
 
@@ -91,7 +90,7 @@ final class TaskBasedUsageExampleSpec: AsyncSpec {
 
       context("state update and observation") {
         it("observes current state when adding observer") {
-          let logicModule: TaskBasedApp.LogicModule = await .newInstance()
+          let logicModule: TaskBasedApp.LogicModule = .newInstance()
           var observedData: App.ArbitraryDownloadableResource? = .init()
           let observer: PropertyPathObserver = .observer(
             for: \App.State.downloadedData,
@@ -107,7 +106,7 @@ final class TaskBasedUsageExampleSpec: AsyncSpec {
         }
 
         it("observes state change triggered by request handling") {
-          let logicModule: TaskBasedApp.LogicModule = await .newInstance()
+          let logicModule: TaskBasedApp.LogicModule = .newInstance()
           var observedData: App.ArbitraryDownloadableResource?
           let observer: PropertyPathObserver = .observer(for: \App.State.downloadedData) {
             observedData = $0
@@ -122,7 +121,7 @@ final class TaskBasedUsageExampleSpec: AsyncSpec {
         }
 
         it("observes state change triggered by side effect") {
-          let logicModule: TaskBasedApp.LogicModule = await .newInstance()
+          let logicModule: TaskBasedApp.LogicModule = .newInstance()
           var observedData: App.ArbitraryDownloadableResource?
           let observer: PropertyPathObserver = .observer(for: \App.State.downloadedData) {
             observedData = $0
@@ -131,9 +130,7 @@ final class TaskBasedUsageExampleSpec: AsyncSpec {
 
           expect(observedData).to(beNil())
 
-          await logicModule.perform(
-            .only(.downloadOfData(from: URL(string: "fakeURL")!), on: .backgroundThread)
-          )
+          await logicModule.perform(.downloadOfData(from: URL(string: "fakeURL")!))
 
           await expect(observedData).toEventuallyNot(beNil())
         }
@@ -158,7 +155,6 @@ final class TaskBasedUsageExampleSpec: AsyncSpec {
 }
 
 private extension TaskBasedApp.LogicModule {
-  @MainActor
   static func newInstance() -> TaskBasedApp.LogicModule {
     let coeffects = TaskBasedApp.Coeffects()
     let model = TaskBasedApp.Model(state: TaskBasedApp.State(), reduce: TaskBasedApp.reduce)
@@ -174,7 +170,6 @@ private extension TaskBasedApp.LogicModule {
     )
   }
 
-  @MainActor
   static func newInstanceWithUI() async -> (TaskBasedApp.LogicModule, TaskBasedApp.MainView, Any) {
     let coeffects = TaskBasedApp.Coeffects()
     let model = TaskBasedApp.Model(state: TaskBasedApp.State(), reduce: TaskBasedApp.reduce)
@@ -201,15 +196,12 @@ private extension TaskBasedApp.LogicModule {
     return (logicModule, view, observer)
   }
 
-  @MainActor
-  private func newUILogicModule() async -> TaskBasedApp.UIEventLogicModule {
+  private func newUILogicModule() -> TaskBasedApp.UIEventLogicModule {
     return self.viewLogic { event, state, then, _ in
       switch event {
       case .downloadButtonPress:
         Task {
-          let result = await then.perform(
-            .asynchronously(.downloadOfData(from: URL(string: "fakeURL")!), on: .backgroundThread)
-          )
+          let result = await then.perform(.downloadOfData(from: URL(string: "fakeURL")!))
 
           switch result {
           case .success:

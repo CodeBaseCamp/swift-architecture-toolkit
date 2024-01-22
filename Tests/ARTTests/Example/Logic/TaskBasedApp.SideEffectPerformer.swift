@@ -7,7 +7,6 @@ extension TaskBasedApp {
     typealias SideEffect = App.SideEffect
     typealias SideEffectError = App.AppError
     typealias Coeffects = App.Coeffects
-    typealias BackgroundDispatchQueueID = App.BackgroundDispatchQueueID
     typealias Result<Error: ErrorProtocol> =
       CompletionIndication<CompositeError<SideEffectExecutionError<Error>>>
     typealias SideEffectClosure = (SideEffect, Coeffects) async -> Result<SideEffectError>
@@ -29,16 +28,11 @@ extension TaskBasedApp {
     private let sideEffectPerformer: ART.TaskBasedSideEffectPerformer<
       SideEffect,
       SideEffectError,
-      Coeffects,
-      BackgroundDispatchQueueID
+      Coeffects
     >
 
     init(sideEffectClosure: @escaping SideEffectClosure) {
       self.sideEffectPerformer = ART.TaskBasedSideEffectPerformer(
-        actors: [
-          .mainThread: MainActor.shared,
-          .backgroundThread: BackgroundActor()
-        ],
         sideEffectClosure: sideEffectClosure
       )
     }
