@@ -3,7 +3,7 @@
 /// Enumeration of specific available dispatch queues.
 public enum DispatchQueueID<
   BackgroundDispatchQueueID: BackgroundDispatchQueueIDProtocol
->: Hashable {
+>: Hashable, Sendable {
   case mainThread
   case backgroundThread(BackgroundDispatchQueueID)
 }

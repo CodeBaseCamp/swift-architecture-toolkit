@@ -5,7 +5,7 @@ import ART
 extension App {
   class SideEffectPerformer: SideEffectPerformerProtocol {
     typealias SideEffect = App.SideEffect
-    typealias Error = App.Error
+    typealias Error = App.AppError
     typealias Coeffects = App.Coeffects
     typealias BackgroundDispatchQueueID = App.BackgroundDispatchQueueID
 

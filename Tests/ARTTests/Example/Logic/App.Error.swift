@@ -3,7 +3,7 @@
 import ART
 
 extension App {
-  enum Error: ErrorProtocol {
+  enum AppError: ErrorProtocol {
     case dataDownloadFailure(String)
 
     var humanReadableDescription: String {

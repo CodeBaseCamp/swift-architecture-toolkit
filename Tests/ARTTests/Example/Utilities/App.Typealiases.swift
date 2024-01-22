@@ -5,7 +5,7 @@ import ART
 extension App {
   typealias BackgroundDispatchQueueID = TestBackgroundDispatchQueueID
   typealias CompositeSideEffect =
-    ART.CompositeSideEffect<SideEffect, Error, BackgroundDispatchQueueID>
+    ART.CompositeSideEffect<SideEffect, AppError, BackgroundDispatchQueueID>
   typealias LogicModule = ART.LogicModule<
     State,
     Request,

@@ -135,6 +135,8 @@ public extension NonEmptyList {
 
 extension NonEmptyList: Hashable where T: Hashable {}
 
+extension NonEmptyList: Sendable where T: Sendable {}
+
 extension NonEmptyList: CustomDebugStringConvertible where T: HumanReadable {
   public var debugDescription: String {
     asArray.reduce("") { result, element -> String in

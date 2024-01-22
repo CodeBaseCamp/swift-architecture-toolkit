@@ -4,7 +4,7 @@ import ART
 
 extension App {
   enum Request: RequestProtocol {
-    case completionOfDataDownload(Result<ArbitraryDownloadableResource, Error>)
+    case completionOfDataDownload(Result<ArbitraryDownloadableResource, AppError>)
     case dismissalOfErrorMessage
 
     var humanReadableDescription: String {
