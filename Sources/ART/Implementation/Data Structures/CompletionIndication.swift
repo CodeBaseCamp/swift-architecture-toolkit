@@ -3,7 +3,7 @@
 import Foundation
 
 /// Indication of completion.
-public enum CompletionIndication<Error: ErrorProtocol>: Equatable {
+public enum CompletionIndication<Error: ErrorProtocol>: Equatable, Sendable {
   case success
   case failure(Error)
 }
