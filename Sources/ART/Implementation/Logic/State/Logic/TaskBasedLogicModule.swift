@@ -14,6 +14,7 @@ public actor TaskBasedLogicModule<
   public typealias SideEffectError = SideEffectPerformer.SideEffectError
   public typealias Coeffects = SideEffectPerformer.Coeffects
   public typealias CompositeSideEffect = TaskBasedCompositeSideEffect<SideEffect, SideEffectError>
+  public typealias CompletionIndication = SideEffectPerformer.CompletionIndication
   public typealias Model = ART.Model<State, Request, Coeffects>
   public typealias Executable = TaskBasedExecutable<Request, SideEffect, SideEffectError>
 
@@ -76,7 +77,7 @@ public actor TaskBasedLogicModule<
   @discardableResult
   public func task(
     performing sideEffect: CompositeSideEffect
-  ) async -> Task<SideEffectPerformer.Result<SideEffectError>, Error> {
+  ) async -> Task<CompletionIndication, Error> {
     return await self.sideEffectPerformer.task(performing: sideEffect, using: self.coeffects)
   }
 
@@ -85,7 +86,7 @@ public actor TaskBasedLogicModule<
   @discardableResult
   public func perform(
     _ sideEffect: CompositeSideEffect
-  ) async -> SideEffectPerformer.Result<SideEffectError> {
+  ) async -> CompletionIndication {
     return await self.sideEffectPerformer.perform(sideEffect, using: self.coeffects)
   }
 
@@ -94,7 +95,7 @@ public actor TaskBasedLogicModule<
   @discardableResult
   public func perform(
     _ sideEffect: SideEffect
-  ) async -> SideEffectPerformer.Result<SideEffectError> {
+  ) async -> CompletionIndication {
     return await self.sideEffectPerformer.perform(.only(sideEffect), using: self.coeffects)
   }
 

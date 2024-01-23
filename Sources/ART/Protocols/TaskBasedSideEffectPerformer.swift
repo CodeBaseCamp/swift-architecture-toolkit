@@ -9,20 +9,20 @@ public protocol TaskBasedSideEffectPerformerProtocol: Actor {
 
   typealias CompositeSideEffect =
     TaskBasedCompositeSideEffect<SideEffect, SideEffectError>
-  typealias Result<Error: ErrorProtocol> =
-    CompletionIndication<CompositeError<SideEffectExecutionError<Error>>>
+  typealias CompletionIndication =
+    ART.CompletionIndication<CompositeError<SideEffectExecutionError<SideEffectError>>>
 
   @discardableResult
   func task(
     performing sideEffect: CompositeSideEffect,
     using coeffects: Coeffects
-  ) async -> Task<Result<SideEffectError>, Error>
+  ) async -> Task<CompletionIndication, Error>
 
   @discardableResult
   func perform(
     _ sideEffect: CompositeSideEffect,
     using coeffects: Coeffects
-  ) async -> Result<SideEffectError>
+  ) async -> CompletionIndication
 }
 
 public actor TaskBasedSideEffectPerformer<
@@ -32,9 +32,9 @@ public actor TaskBasedSideEffectPerformer<
 >: TaskBasedSideEffectPerformerProtocol {
   public typealias CompositeSideEffect =
     TaskBasedCompositeSideEffect<SideEffect, SideEffectError>
-  public typealias Result<Error: ErrorProtocol> =
-    CompletionIndication<CompositeError<SideEffectExecutionError<Error>>>
-  public typealias SideEffectClosure = (SideEffect, Coeffects) async -> Result<SideEffectError>
+  public typealias CompletionIndication =
+    ART.CompletionIndication<CompositeError<SideEffectExecutionError<SideEffectError>>>
+  public typealias SideEffectClosure = (SideEffect, Coeffects) async -> CompletionIndication
 
   private let sideEffectClosure: SideEffectClosure
 
@@ -46,7 +46,7 @@ public actor TaskBasedSideEffectPerformer<
   public func task(
     performing sideEffect: CompositeSideEffect,
     using coeffects: Coeffects
-  ) async -> Task<Result<SideEffectError>, Error> {
+  ) async -> Task<CompletionIndication, Error> {
     return Task { [unowned self] in
       return await self.perform(sideEffect, using: coeffects)
     }
@@ -56,7 +56,7 @@ public actor TaskBasedSideEffectPerformer<
   public func perform(
     _ sideEffect: CompositeSideEffect,
     using coeffects: Coeffects
-  ) async -> Result<SideEffectError> {
+  ) async -> CompletionIndication {
     switch sideEffect {
     case .doNothing:
       return .success
@@ -114,8 +114,8 @@ public actor TaskBasedSideEffectPerformer<
       }
 
     case let .concurrently(sideEffects):
-      let result: Result<SideEffectError> = 
-        await withTaskGroup(of: Result<SideEffectError>.self) { taskGroup in
+      let result: CompletionIndication =
+        await withTaskGroup(of: CompletionIndication.self) { taskGroup in
           for sideEffect in sideEffects {
             taskGroup.addTask {
               await self.perform(sideEffect, using: coeffects)

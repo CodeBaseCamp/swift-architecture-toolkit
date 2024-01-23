@@ -53,7 +53,7 @@ public actor TaskBasedUIEventLogicModule<
 public extension TaskBasedLogicModule {
   struct ExecutionOptions {
     public typealias CompositeSideEffect = TaskBasedCompositeSideEffect<SideEffect, SideEffectError>
-    public typealias CompletionIndication = SideEffectPerformer.Result<SideEffectError>
+    public typealias CompletionIndication = SideEffectPerformer.CompletionIndication
 
     public let handleInSingleTransaction: ([Request]) -> Void
 
