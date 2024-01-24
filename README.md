@@ -1,5 +1,11 @@
 # `ART` - A minimalist toolkit for architecting Swift(UI) apps
 
+## Disclaimer
+
+This repository is work in progress and commits with breaking changes might be added to any branch at
+any time. Since this project is a personal one, no warnings will be given for now. It is advisable to
+not rely on the code in this repository for anything other than for hobby projects.
+
 ## tl;dr
 
 Minimal modular single-entry architecture allowing for feedback-loop-centric and observation-based
