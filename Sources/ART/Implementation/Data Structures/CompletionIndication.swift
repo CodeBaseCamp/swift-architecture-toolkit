@@ -56,3 +56,14 @@ extension CompletionIndication: HumanReadable {
     }
   }
 }
+
+public extension CompletionIndication {
+  var successIndication: SuccessIndication {
+    switch self {
+    case .success:
+      return .success
+    case .failure:
+      return .failure
+    }
+  }
+}
