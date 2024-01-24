@@ -9,7 +9,7 @@ public protocol ExecutableExecutor {
   associatedtype Error: ErrorProtocol
   associatedtype BackgroundDispatchQueueID: BackgroundDispatchQueueIDProtocol
 
-  /// Serially executes the given `executables`.
+  /// Sequentially executes the given `executables`.
   func executeSequentially(
     _ executables: [Executable<Request, SideEffect, Error, BackgroundDispatchQueueID>]
   )
