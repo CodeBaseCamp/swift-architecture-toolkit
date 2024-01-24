@@ -10,7 +10,7 @@ import Quick
 /// relying on `ART` maintain a single object similar to the one documented here which is
 /// responsible for
 /// a) holding the `LogicModule` instance,
-/// b) holding a collection of observers which cannot be added to the `LogicModule` already during 
+/// b) holding a collection of observers which cannot be added to the `LogicModule` already during
 ///    its creation and must be held since the `LogicModule` does not hold dynamically added
 ///    observers strongly,
 /// c) sending requests and/or side effects to the `LogicModule` due to changes of the system state
@@ -19,8 +19,11 @@ import Quick
 class App {
   private let logicModule: LogicModule
 
-  init(with logicModule: LogicModule) {
+  private let uiLogicModule: UIEventLogicModule?
+
+  init(with logicModule: LogicModule, uiLogicModule: UIEventLogicModule? = nil) {
     self.logicModule = logicModule
+    self.uiLogicModule = uiLogicModule
   }
 
   /// Function implementing the state reduction logic. There are several ways of encapsulating the
@@ -44,56 +47,33 @@ class App {
       }
     }
   }
-  
+
   /// Function implementing side effect performing.
   fileprivate static func sideEffectClosure(
     _ handle: @escaping (Request, Coeffects) -> Void
   ) -> SideEffectPerformer.SideEffectClosure {
-    return { sideEffect, coeffects, completion in
+    return { sideEffect, coeffects in
       switch sideEffect {
       case .downloadOfData:
         // For the sake of the example, success in downloading the data is assumed.
         handle(.completionOfDataDownload(.success(App.ArbitraryDownloadableResource())), coeffects)
-        completion(.success)
-      }
-    }
-  }
-
-  /// Function implementing the UI event handling.
-  fileprivate static func eventClosure(
-    _ logicModule: LogicModule
-  ) -> (MainView.Event) -> Void {
-    return { event in
-      switch event {
-      case .downloadButtonPress:
-        logicModule.perform(
-          .asynchronously(.downloadOfData(from: URL(string: "fakeURL")!), on: .backgroundThread)
-        ) {
-          switch $0 {
-          case .success:
-            break
-          case let .failure(error):
-            print("Failed downloading data: \(error.localizedDescription)")
-          }
-        }
-      case .errorMessageView(.buttonPress):
-        logicModule.handle(.dismissalOfErrorMessage)
+        return .success
       }
     }
   }
 }
 
-final class UsageExampleSpec: QuickSpec {
+final class UsageExampleSpec: AsyncSpec {
   override class func spec() {
     context("minimal example application") {
       context("setup") {
         it("sets up application with logic module") {
-          let logicModule: LogicModule = .newInstance()
+          let logicModule: App.LogicModule = .newInstance()
           _ = App(with: logicModule)
         }
 
         it("sets up application with logic module and UI") {
-          let (logicModule, view, observer) = LogicModule.newInstanceWithUI()
+          let (logicModule, view, observer) = await App.LogicModule.newInstanceWithUI()
           _ = App(with: logicModule)
 
           connect(view)
@@ -110,7 +90,7 @@ final class UsageExampleSpec: QuickSpec {
 
       context("state update and observation") {
         it("observes current state when adding observer") {
-          let logicModule: LogicModule = .newInstance()
+          let logicModule: App.LogicModule = .newInstance()
           var observedData: App.ArbitraryDownloadableResource? = .init()
           let observer: PropertyPathObserver = .observer(
             for: \App.State.downloadedData,
@@ -120,18 +100,18 @@ final class UsageExampleSpec: QuickSpec {
           ) { _ in
             fatalErrorDueToMissingImplementation()
           }
-          logicModule.add(observer.modelObserver)
+          await logicModule.add(observer.modelObserver)
 
           expect(observedData).to(beNil())
         }
 
         it("observes state change triggered by request handling") {
-          let logicModule: LogicModule = .newInstance()
+          let logicModule: App.LogicModule = .newInstance()
           var observedData: App.ArbitraryDownloadableResource?
           let observer: PropertyPathObserver = .observer(for: \App.State.downloadedData) {
             observedData = $0
           }
-          logicModule.add(observer.modelObserver)
+          await logicModule.add(observer.modelObserver)
 
           expect(observedData).to(beNil())
 
@@ -141,35 +121,33 @@ final class UsageExampleSpec: QuickSpec {
         }
 
         it("observes state change triggered by side effect") {
-          let logicModule: LogicModule = .newInstance()
+          let logicModule: App.LogicModule = .newInstance()
           var observedData: App.ArbitraryDownloadableResource?
           let observer: PropertyPathObserver = .observer(for: \App.State.downloadedData) {
             observedData = $0
           }
-          logicModule.add(observer.modelObserver)
+          await logicModule.add(observer.modelObserver)
 
           expect(observedData).to(beNil())
 
-          logicModule.perform(
-            .only(.downloadOfData(from: URL(string: "fakeURL")!), on: .backgroundThread)
-          )
+          await logicModule.perform(.downloadOfData(from: URL(string: "fakeURL")!))
 
-          expect(observedData).toEventuallyNot(beNil())
+          await expect(observedData).toEventuallyNot(beNil())
         }
 
         it("observes state change triggered by UI event") {
-          let (logicModule, view, _) = LogicModule.newInstanceWithUI()
+          let (logicModule, view, _) = await App.LogicModule.newInstanceWithUI()
           var observedData: App.ArbitraryDownloadableResource?
           let dataObserver: PropertyPathObserver = .observer(for: \App.State.downloadedData) {
             observedData = $0
           }
-          logicModule.add(dataObserver.modelObserver)
+          await logicModule.add(dataObserver.modelObserver)
 
           expect(observedData).to(beNil())
 
           view.handle(.downloadButtonPress)
 
-          expect(observedData).toEventuallyNot(beNil())
+          await expect(observedData).toEventuallyNot(beNil())
         }
       }
     }
@@ -184,7 +162,7 @@ private extension App.LogicModule {
       sideEffectClosure: App.sideEffectClosure(model.handle)
     )
 
-    return LogicModule(
+    return App.LogicModule(
       model: model,
       sideEffectPerformer: sideEffectPerformer,
       coeffects: coeffects,
@@ -192,26 +170,47 @@ private extension App.LogicModule {
     )
   }
 
-  static func newInstanceWithUI() -> (App.LogicModule, App.MainView, Any) {
+  static func newInstanceWithUI() async -> (App.LogicModule, App.MainView, Any) {
     let coeffects = App.Coeffects()
     let model = App.Model(state: App.State(), reduce: App.reduce)
     let sideEffectPerformer = App.SideEffectPerformer(
       sideEffectClosure: App.sideEffectClosure(model.handle)
     )
-    let logicModule = LogicModule(
+    let logicModule = App.LogicModule(
       model: model,
       sideEffectPerformer: sideEffectPerformer,
       coeffects: coeffects,
       staticObservers: []
     )
-
+    let uiLogicModule = await logicModule.newUILogicModule()
     let (view, observer) = App.MainView.instance(
       observing: \.self,
       of: model,
-      using: coeffects,
-      handlingEventsWith: App.eventClosure(logicModule)
-    )
+      using: coeffects
+    ) { event in
+      uiLogicModule.handle(event, given: model.state)
+    }
 
     return (logicModule, view, observer)
+  }
+
+  private func newUILogicModule() -> App.UIEventLogicModule {
+    return self.viewLogic { event, state, then, _ in
+      switch event {
+      case .downloadButtonPress:
+        Task {
+          let result = await then.perform(.downloadOfData(from: URL(string: "fakeURL")!))
+
+          switch result {
+          case .success:
+            break
+          case let .failure(error):
+            print("Failed downloading data: \(error.localizedDescription)")
+          }
+        }
+      case .errorMessageView(.buttonPress):
+        self.handle(.dismissalOfErrorMessage)
+      }
+    }
   }
 }

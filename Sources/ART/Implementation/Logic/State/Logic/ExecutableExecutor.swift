@@ -6,30 +6,39 @@ import Foundation
 public protocol ExecutableExecutor {
   associatedtype Request: RequestProtocol
   associatedtype SideEffect: SideEffectProtocol
-  associatedtype Error: ErrorProtocol
-  associatedtype BackgroundDispatchQueueID: BackgroundDispatchQueueIDProtocol
+  associatedtype SideEffectError: ErrorProtocol
+
+  typealias Executable = ART.Executable<Request, SideEffect, SideEffectError>
+  typealias ExecutableResult =
+    CompletionIndication<CompositeError<SideEffectExecutionError<SideEffectError>>>
+
+  /// Executes the given `executable`.
+  @discardableResult
+  func execute(_ executable: Executable) async -> ExecutableResult
 
   /// Sequentially executes the given `executables`.
-  func executeSequentially(
-    _ executables: [Executable<Request, SideEffect, Error, BackgroundDispatchQueueID>]
-  )
+  @discardableResult
+  func executeSequentially(_ executables: [Executable]) async -> [ExecutableResult]
+
+  /// Handles the given `requests` in a single transaction.
+  nonisolated func handleInSingleTransaction(_ requests: [Request])
 }
 
 public extension ExecutableExecutor {
   /// Executes the given `executable`.
-  func execute(
-    _ executable: Executable<Request, SideEffect, Error, BackgroundDispatchQueueID>
-  ) {
-    self.executeSequentially([executable])
+  func execute(_ executable: Executable) async {
+    await self.executeSequentially([executable])
+  }
+
+  /// Executes the given `executable` asynchronously.
+  func executeAsynchronously(_ executable: Executable) {
+    Task {
+      await self.execute(executable)
+    }
   }
 
   /// Handles the given `request`.
-  func handle(_ request: Request) {
+  nonisolated func handle(_ request: Request) {
     self.handleInSingleTransaction([request])
-  }
-
-  /// Handles the given `requests` in a single transaction.
-  func handleInSingleTransaction(_ requests: [Request]) {
-    self.execute(.requests(requests))
   }
 }

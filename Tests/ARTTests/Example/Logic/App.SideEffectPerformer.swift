@@ -3,33 +3,36 @@
 import ART
 
 extension App {
-  class SideEffectPerformer: SideEffectPerformerProtocol {
+  actor SideEffectPerformer: SideEffectPerformerProtocol {
     typealias SideEffect = App.SideEffect
-    typealias Error = App.AppError
+    typealias SideEffectError = App.AppError
     typealias Coeffects = App.Coeffects
-    typealias BackgroundDispatchQueueID = App.BackgroundDispatchQueueID
+    typealias Result<Error: ErrorProtocol> =
+      CompletionIndication<CompositeError<SideEffectExecutionError<Error>>>
+    typealias SideEffectClosure = (SideEffect, Coeffects) async -> Result<SideEffectError>
+
+    func task(
+      performing sideEffect: CompositeSideEffect,
+      using coeffects: Coeffects
+    ) async -> Task<Result<SideEffectError>, Error> {
+      return await self.sideEffectPerformer.task(performing: sideEffect, using: coeffects)
+    }
 
     func perform(
       _ sideEffect: CompositeSideEffect,
-      using coeffects: Coeffects,
-      completion: @escaping CompletionClosure
-    ) {
-      self.sideEffectPerformer.perform(sideEffect, using: coeffects, completion: completion)
+      using coeffects: Coeffects
+    ) async -> Result<SideEffectError> {
+      return await self.sideEffectPerformer.perform(sideEffect, using: coeffects)
     }
 
     private let sideEffectPerformer: ART.SideEffectPerformer<
       SideEffect,
-      Error,
-      Coeffects,
-      BackgroundDispatchQueueID
+      SideEffectError,
+      Coeffects
     >
 
-    init(sideEffectClosure: @escaping SideEffectPerformer.SideEffectClosure) {
+    init(sideEffectClosure: @escaping SideEffectClosure) {
       self.sideEffectPerformer = ART.SideEffectPerformer(
-        dispatchQueues: [
-          .mainThread: .main,
-          .backgroundThread: .init(label: "background")
-        ],
         sideEffectClosure: sideEffectClosure
       )
     }

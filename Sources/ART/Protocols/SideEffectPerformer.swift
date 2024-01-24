@@ -2,13 +2,12 @@
 
 import Foundation
 
-public protocol TaskBasedSideEffectPerformerProtocol: Actor {
+public protocol SideEffectPerformerProtocol: Actor {
   associatedtype SideEffect: SideEffectProtocol
   associatedtype SideEffectError: ErrorProtocol
   associatedtype Coeffects: CoeffectsProtocol
 
-  typealias CompositeSideEffect =
-    TaskBasedCompositeSideEffect<SideEffect, SideEffectError>
+  typealias CompositeSideEffect = ART.CompositeSideEffect<SideEffect, SideEffectError>
   typealias CompletionIndication =
     ART.CompletionIndication<CompositeError<SideEffectExecutionError<SideEffectError>>>
 
@@ -25,13 +24,12 @@ public protocol TaskBasedSideEffectPerformerProtocol: Actor {
   ) async -> CompletionIndication
 }
 
-public actor TaskBasedSideEffectPerformer<
+public actor SideEffectPerformer<
   SideEffect: SideEffectProtocol,
   SideEffectError: ErrorProtocol,
   Coeffects: CoeffectsProtocol
->: TaskBasedSideEffectPerformerProtocol {
-  public typealias CompositeSideEffect =
-    TaskBasedCompositeSideEffect<SideEffect, SideEffectError>
+>: SideEffectPerformerProtocol {
+  public typealias CompositeSideEffect = ART.CompositeSideEffect<SideEffect, SideEffectError>
   public typealias CompletionIndication =
     ART.CompletionIndication<CompositeError<SideEffectExecutionError<SideEffectError>>>
   public typealias SideEffectClosure = (SideEffect, Coeffects) async -> CompletionIndication

@@ -2,6 +2,12 @@
 
 import Foundation
 
+public enum ExecutableFollowUpBehavior<Request: RequestProtocol>: Equatable, Sendable {
+  case nothing
+  case crashUponFailure(successRequests: [Request])
+  case requests([SuccessIndication: [Request]])
+}
+
 /// Object representing an executable consisting of requests which are initially handled in a single
 /// transaction and in a synchronous fashion and pairs of side effects and completion closures. The
 /// side effects are performed asynchronously and their corresponding completion closures are
@@ -10,39 +16,47 @@ import Foundation
 public struct Executable<
   Request: RequestProtocol,
   SideEffect: SideEffectProtocol,
-  Error: ErrorProtocol,
-  BackgroundDispatchQueueID: BackgroundDispatchQueueIDProtocol
+  Error: ErrorProtocol
 > {
-  public typealias ExecutableSideEffect =
-    CompositeSideEffect<SideEffect, Error, BackgroundDispatchQueueID>
-  public typealias ExecutableCompletionClosure =
-    (CompletionIndication<CompositeError<SideEffectExecutionError<Error>>>) -> [Request]
+  public typealias ExecutableSideEffect = CompositeSideEffect<SideEffect, Error>
+  public typealias FollowUpBehavior = ExecutableFollowUpBehavior<Request>
 
   let initialRequests: [Request]
 
   let sideEffect: ExecutableSideEffect
 
-  let completion: ExecutableCompletionClosure
+  let followUpBehavior: FollowUpBehavior
 
   private init(
     initialRequests: [Request] = [],
     sideEffect: ExecutableSideEffect = .doNothing,
-    completion: @escaping ExecutableCompletionClosure = { _ in [] }
+    followUpBehavior: FollowUpBehavior = .crashUponFailure
   ) {
+    Self.validate(followUpBehavior)
+
     self.initialRequests = initialRequests
     self.sideEffect = sideEffect
-    self.completion = completion
+    self.followUpBehavior = followUpBehavior
+  }
+
+  private static func validate(_ followUpBehavior: FollowUpBehavior) {
+    switch followUpBehavior {
+    case .nothing, .crashUponFailure:
+      break
+    case let .requests(finalRequests):
+      ensure(finalRequests[.success] != nil && finalRequests[.failure] != nil,
+             "Invalid final requests: \(finalRequests)")
+    }
   }
 }
 
 public extension Executable {
   func withMappedRequest<NewRequest: RequestProtocol>(
     _ closure: @escaping (Request) -> NewRequest
-  ) -> Executable<NewRequest, SideEffect, Error, BackgroundDispatchQueueID> {
-    return Executable<NewRequest, SideEffect, Error, BackgroundDispatchQueueID>(
+  ) -> Executable<NewRequest, SideEffect, Error> {
+    return Executable<NewRequest, SideEffect, Error>(
       initialRequests: self.initialRequests.map(closure),
-      sideEffect: self.sideEffect,
-      completion: { self.completion($0).map(closure) }
+      sideEffect: self.sideEffect
     )
   }
 
@@ -58,68 +72,122 @@ public extension Executable {
     return Self(initialRequests: requests)
   }
 
-  static func sideEffect(
-    _ sideEffect: ExecutableSideEffect,
-    _ completion: @escaping ExecutableCompletionClosure = { _ in [] }
-  ) -> Self {
-    return Self(sideEffect: sideEffect, completion: completion)
+  static func successfulSideEffect(_ sideEffect: ExecutableSideEffect) -> Self {
+    return Self(
+      sideEffect: sideEffect,
+      followUpBehavior: .crashUponFailure
+    )
   }
 
-  static func successfulSideEffect(
+  static func sideEffect(
     _ sideEffect: ExecutableSideEffect,
-    _ completion: @escaping ExecutableCompletionClosure = { _ in [] }
+    followedBy followUpBehavior: FollowUpBehavior = .nothing
   ) -> Self {
-    return Self(sideEffect: sideEffect) {
-      if let error = $0.error {
-        fatalError(error.humanReadableDescription)
-      }
+    return Self(
+      sideEffect: sideEffect,
+      followUpBehavior: followUpBehavior
+    )
+  }
 
-      return completion($0)
-    }
+  static func requestAndSuccessfulSideEffect(
+    _ initialRequest: Request,
+    sideEffect: ExecutableSideEffect
+  ) -> Self {
+    return Self(
+      initialRequests: [initialRequest],
+      sideEffect: sideEffect,
+      followUpBehavior: .crashUponFailure
+    )
   }
 
   static func requestAndSideEffect(
     _ initialRequest: Request,
     sideEffect: ExecutableSideEffect,
-    _ completion: @escaping ExecutableCompletionClosure = { _ in [] }
+    followedBy followUpBehavior: FollowUpBehavior = .nothing
   ) -> Self {
-    return Self(initialRequests: [initialRequest],
-                sideEffect: sideEffect,
-                completion: completion)
+    return Self(
+      initialRequests: [initialRequest],
+      sideEffect: sideEffect,
+      followUpBehavior: followUpBehavior
+    )
+  }
+
+  static func requestsAndSuccessfulSideEffect(
+    _ initialRequests: Request ...,
+    sideEffect: ExecutableSideEffect
+  ) -> Self {
+    return Self(
+      initialRequests: initialRequests,
+      sideEffect: sideEffect,
+      followUpBehavior: .crashUponFailure
+    )
   }
 
   static func requestsAndSideEffect(
     _ initialRequests: Request ...,
     sideEffect: ExecutableSideEffect,
-    _ completion: @escaping ExecutableCompletionClosure = { _ in [] }
+    followedBy followUpBehavior: FollowUpBehavior = .nothing
   ) -> Self {
-    return Self(initialRequests: initialRequests,
-                sideEffect: sideEffect,
-                completion: completion)
+    return Self(
+      initialRequests: initialRequests,
+      sideEffect: sideEffect,
+      followUpBehavior: followUpBehavior
+    )
+  }
+
+  static func requestsAndSuccessfulSideEffect(
+    _ initialRequests: [Request],
+    _ sideEffect: ExecutableSideEffect
+  ) -> Self {
+    return Self(
+      initialRequests: initialRequests,
+      sideEffect: sideEffect,
+      followUpBehavior: .crashUponFailure
+    )
   }
 
   static func requestsAndSideEffect(
     _ initialRequests: [Request],
     _ sideEffect: ExecutableSideEffect,
-    _ completion: @escaping ExecutableCompletionClosure = { _ in [] }
+    followedBy followUpBehavior: FollowUpBehavior = .nothing
   ) -> Self {
-    return Self(initialRequests: initialRequests,
-                sideEffect: sideEffect,
-                completion: completion)
+    return Self(
+      initialRequests: initialRequests,
+      sideEffect: sideEffect,
+      followUpBehavior: followUpBehavior
+    )
+  }
+}
+
+public extension ExecutableFollowUpBehavior {
+  static var crashUponFailure: Self {
+    return .crashUponFailure(successRequests: [])
   }
 
-  static func requestsAndSuccessfulSideEffect(
-    _ initialRequests: Request ...,
-    sideEffect: ExecutableSideEffect,
-    _ completion: @escaping ExecutableCompletionClosure = { _ in [] }
-  ) -> Self {
-    return Self(initialRequests: initialRequests,
-                sideEffect: sideEffect) {
-      if let error = $0.error {
-        fatalError(error.humanReadableDescription)
-      }
+  static func  requestsUponSuccess(_ requests: [Request]) -> Self {
+    return .requests(
+      [
+        .success: requests,
+        .failure: [],
+      ]
+    )
+  }
 
-      return completion($0)
-    }
+  static func  requestsUponFailure(_ requests: [Request]) -> Self {
+    return .requests(
+      [
+        .success: [],
+        .failure: requests,
+      ]
+    )
+  }
+
+  static func requests(_ requests: [Request]) -> Self {
+    return .requests(
+      [
+        .success: requests,
+        .failure: requests,
+      ]
+    )
   }
 }

@@ -9,9 +9,8 @@ public class UIEventLogicModule<
   Request: RequestProtocol,
   SideEffectPerformer: SideEffectPerformerProtocol
 > {
-  public typealias Error = SideEffectPerformer.Error
+  public typealias SideEffectError = SideEffectPerformer.SideEffectError
   public typealias Coeffects = SideEffectPerformer.Coeffects
-  public typealias BackgroundDispatchQueueID = SideEffectPerformer.BackgroundDispatchQueueID
   public typealias Module = LogicModule<State, Request, SideEffectPerformer>
 
   private let logicModule: Module
@@ -34,8 +33,6 @@ public class UIEventLogicModule<
   }
 
   public func handle(_ event: Event, given state: State) {
-    debugEnsure(Thread.isMainThread, "Code run on invalid thread: \(Thread.current)")
-
     guard self.shouldHandle(event, given: state) else {
       return
     }
@@ -45,7 +42,6 @@ public class UIEventLogicModule<
       perform: self.logicModule.perform,
       executeSequentially: self.logicModule.executeSequentially
     )
-
     handleEventClosure(event, state, executionOptions, coeffects)
   }
 
@@ -56,17 +52,27 @@ public class UIEventLogicModule<
 
 public extension LogicModule {
   struct ExecutionOptions {
+    public typealias CompositeSideEffect = ART.CompositeSideEffect<SideEffect, SideEffectError>
+    public typealias CompletionIndication = SideEffectPerformer.CompletionIndication
+
     public let handleInSingleTransaction: ([Request]) -> Void
 
-    public let perform: (
-      CompositeSideEffect<SideEffect, Error, BackgroundDispatchQueueID>,
-      @escaping CompletionClosure
-    ) -> Void
+    public let perform: (CompositeSideEffect) async -> CompletionIndication
 
-    public let executeSequentially: ([Executable]) -> Void
+    public let executeSequentially: ([Executable]) async -> [CompletionIndication]
+
+    public init(
+      handleInSingleTransaction: @escaping ([Request]) -> Void,
+      perform: @escaping (CompositeSideEffect) async -> CompletionIndication,
+      executeSequentially: @escaping ([Executable]) async -> [CompletionIndication]
+    ) {
+      self.handleInSingleTransaction = handleInSingleTransaction
+      self.perform = perform
+      self.executeSequentially = executeSequentially
+    }
   }
 
-  func viewLogic<Event: Equatable>(
+  nonisolated func viewLogic<Event: Equatable>(
     handleEvent: @escaping (Event, State, ExecutionOptions, Coeffects) -> Void,
     shouldHandle: @escaping (Event, State) -> Bool = { _, _ in return true }
   ) -> UIEventLogicModule<
@@ -80,15 +86,39 @@ public extension LogicModule {
 }
 
 extension LogicModule.ExecutionOptions: ExecutableExecutor {
-  public func perform(
-    _ sideEffect: CompositeSideEffect<SideEffect, Error, BackgroundDispatchQueueID>
-  ) {
-    self.perform(sideEffect) {
-      ensure(!$0.isFailure, "Received unexpected failure: \($0)")
+  public func execute(_ executable: LogicModule.Executable) async -> CompletionIndication {
+    let completionIndications = await self.executeSequentially([executable])
+
+    debugEnsure(completionIndications.count == 1,
+                "Invalid completion indications: \(completionIndications)")
+
+    return completionIndications[0]
+  }
+  
+  public func executeSequentially(
+    _ executables: [LogicModule.Executable]
+  ) async -> [CompletionIndication] {
+    await self.executeSequentially(executables)
+  }
+
+  public func performSuccessfully(_ sideEffect: CompositeSideEffect) {
+    Task {
+      let completionIndication = await self.perform(sideEffect)
+      if let error = completionIndication.error {
+        fatalError("Side effect failed with error: \(error.humanReadableDescription)")
+      }
     }
   }
 
-  public func executeSequentially(_ executables: [LogicModule.Executable]) {
-    self.executeSequentially(executables)
+  public func performSuccessfully(_ sideEffect: SideEffect) {
+    self.performSuccessfully(.only(sideEffect))
+  }
+
+  public func perform(_ sideEffect: SideEffect) async -> CompletionIndication {
+    return await self.perform(.only(sideEffect))
+  }
+
+  public func handleInSingleTransaction(_ requests: [Request]) {
+    self.handleInSingleTransaction(requests)
   }
 }

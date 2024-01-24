@@ -2,23 +2,21 @@
 
 import Foundation
 
-/// Object responsible for updating the application state according to received requests and 
-/// manipulating the system state by performing side effects. Typically, an application holds a 
+/// Object responsible for updating the application state according to received requests and
+/// manipulating the system state by performing side effects. Typically, an application holds a
 /// single logic module.
-public class LogicModule<
+public actor LogicModule<
   State: StateProtocol,
   Request: RequestProtocol,
   SideEffectPerformer: SideEffectPerformerProtocol
 >: ExecutableExecutor {
   public typealias SideEffect = SideEffectPerformer.SideEffect
-  public typealias Error = SideEffectPerformer.Error
+  public typealias SideEffectError = SideEffectPerformer.SideEffectError
   public typealias Coeffects = SideEffectPerformer.Coeffects
-  public typealias BackgroundDispatchQueueID = SideEffectPerformer.BackgroundDispatchQueueID
+  public typealias CompositeSideEffect = ART.CompositeSideEffect<SideEffect, SideEffectError>
+  public typealias CompletionIndication = SideEffectPerformer.CompletionIndication
   public typealias Model = ART.Model<State, Request, Coeffects>
-  public typealias CompletionClosure = SideEffectPerformer.CompletionClosure
-  public typealias SideEffectClosure = SideEffectPerformer.SideEffectClosure
-  public typealias Executable =
-    ART.Executable<Request, SideEffect, Error, BackgroundDispatchQueueID>
+  public typealias Executable = ART.Executable<Request, SideEffect, SideEffectError>
 
   /// Underlying model provided upon initialization.
   private let model: Model
@@ -30,7 +28,7 @@ public class LogicModule<
   private let observerReferences: [Any]
 
   /// Objects providing co-effect functionality.
-  public let coeffects: Coeffects
+  public nonisolated let coeffects: Coeffects
 
   /// Initializes with the given `model` and the given `staticObservers` tuple consisting of a model
   /// observer which is weakly held by the initialized instance and a type-erased reference to an
@@ -41,7 +39,7 @@ public class LogicModule<
   /// - important The given model observers are added to the given `model` and are informed about
   ///             relevant observations until the deallocation of the initialized instance.
   /// - important Observers which should be deallocated before the returned object is deallocated
-  ///             should not be part of the initialization but should be added using the `add` 
+  ///             should not be part of the initialization but should be added using the `add`
   ///             method of the returned object.
   public init(
     model: Model,
@@ -60,38 +58,91 @@ public class LogicModule<
   }
 
   /// Sequentially executes the given `executables`.
-  public func executeSequentially(_ executables: [Executable]) {
-    guard let currentExecutable = executables.first else {
-      return
+  @discardableResult
+  public func execute(_ executable: Executable) async -> CompletionIndication {
+    self.model.handleInSingleTransaction(executable.initialRequests, using: self.coeffects)
+
+    let result = await self.perform(executable.sideEffect)
+
+    switch executable.followUpBehavior {
+    case .nothing:
+      break
+    
+    case let .crashUponFailure(requests):
+      if let error = result.error {
+        fatalError("Error: \(error)")
+      }
+
+      self.model.handleInSingleTransaction(requests, using: self.coeffects)
+    
+    case let .requests(requests):
+      self.model.handleInSingleTransaction(
+        requiredLet(requests[result.successIndication], "Must exist"),
+        using: self.coeffects
+      )
     }
 
-    self.model.handleInSingleTransaction(currentExecutable.initialRequests, using: self.coeffects)
-
-    self.perform(currentExecutable.sideEffect) {
-      self.model.handleInSingleTransaction(currentExecutable.completion($0), using: self.coeffects)
-
-      self.executeSequentially(Array(executables.dropFirst()))
-    }
+    return result
   }
 
-  /// Performs the given `sideEffect`. Upon completion of the side effect, the given `completion`
-  /// closure is invoked with the corresponding completion indication.
+  /// Sequentially executes the given `executables`.
+  @discardableResult
+  public func executeSequentially(_ executables: [Executable]) async -> [CompletionIndication] {
+    guard let currentExecutable = executables.first else {
+      return []
+    }
+
+    let completionIndication = await self.execute(currentExecutable)
+    let completionIndications = await self.executeSequentially(Array(executables.dropFirst()))
+
+    return [completionIndication] + completionIndications
+  }
+
+  /// Returns a task performing the given `sideEffect`. Upon completion of the side effect, the
+  /// given `completion` closure is invoked with the corresponding completion indication.
+  @discardableResult
+  public func task(
+    performing sideEffect: CompositeSideEffect
+  ) async -> Task<CompletionIndication, Error> {
+    return await self.sideEffectPerformer.task(performing: sideEffect, using: self.coeffects)
+  }
+
+  /// Performs the given `sideEffect` and returns the corresponding completion indication.
+  @discardableResult
   public func perform(
-    _ sideEffect: CompositeSideEffect<SideEffect, Error, BackgroundDispatchQueueID>,
-    completion: @escaping SideEffectPerformer.CompletionClosure = {
-      if let error = $0.error {
-        fatalError("Received unexpected failure: \(error)")
+    _ sideEffect: CompositeSideEffect
+  ) async -> CompletionIndication {
+    return await self.sideEffectPerformer.perform(sideEffect, using: self.coeffects)
+  }
+
+  /// Performs the given `sideEffect` asynchronously, ensuring that the side effect completed
+  /// successfully.
+  public nonisolated func performSuccessfully(_ sideEffect: CompositeSideEffect) {
+    Task {
+      let completionIndication =
+        await self.sideEffectPerformer.perform(sideEffect, using: self.coeffects)
+      if let error = completionIndication.error {
+        fatalError("Side effect failed with error: \(error.humanReadableDescription)")
       }
     }
-  ) {
-    self.sideEffectPerformer.perform(sideEffect, using: self.coeffects, completion: completion)
   }
 
-  /// Performs the given `sideEffect` and deliberately ignores any occurring failure.
-  public func performWhileIgnoringFailure(
-    _ sideEffect: CompositeSideEffect<SideEffect, Error, BackgroundDispatchQueueID>
-  ) {
-    self.sideEffectPerformer.perform(sideEffect, using: self.coeffects) { _ in }
+  /// Returns a task performing the given `sideEffect`. Upon completion of the side effect, the
+  /// given `completion` closure is invoked with the corresponding completion indication.
+  @discardableResult
+  public func perform(
+    _ sideEffect: SideEffect
+  ) async -> CompletionIndication {
+    return await self.perform(.only(sideEffect))
+  }
+
+  /// Performs the given `sideEffect` asynchronously, ignoring any completion indication.
+  public nonisolated func performSuccessfully(_ sideEffect: SideEffect) {
+    self.performSuccessfully(.only(sideEffect))
+  }
+
+  public nonisolated func handleInSingleTransaction(_ requests: [Request]) {
+    self.model.handleInSingleTransaction(requests, using: self.coeffects)
   }
 
   /// Adds the given `observer` to the receiver. The `observer` is immediately informed about the
