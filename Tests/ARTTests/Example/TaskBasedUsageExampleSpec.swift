@@ -188,9 +188,7 @@ private extension TaskBasedApp.LogicModule {
       of: model,
       using: coeffects
     ) { event in
-      Task {
-        await uiLogicModule.handle(event, given: model.state)
-      }
+      uiLogicModule.handle(event, given: model.state)
     }
 
     return (logicModule, view, observer)

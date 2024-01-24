@@ -6,7 +6,7 @@
 /// - note By default, a request is assumed to change the state. Value objects conforming to this
 ///        protocol but not necessarily changing the state should override the `mustResultInChange`
 ///        method accordingly.
-public protocol RequestProtocol: Equatable, HumanReadable {
+public protocol RequestProtocol: Equatable, HumanReadable, Sendable {
   /// Returns `true` if the receiver must result in a change of the state, otherwise `false`. `true`
   /// by default.
   ///

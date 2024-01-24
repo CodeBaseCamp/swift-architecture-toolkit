@@ -3,7 +3,7 @@
 import Foundation
 
 /// Object responsible for the logic executed upon UI events.
-public actor TaskBasedUIEventLogicModule<
+public class TaskBasedUIEventLogicModule<
   Event: Equatable,
   State: StateProtocol,
   Request: RequestProtocol,
@@ -59,12 +59,12 @@ public extension TaskBasedLogicModule {
 
     public let perform: (CompositeSideEffect) async -> CompletionIndication
 
-    public let executeSequentially: ([Executable]) async -> Void
+    public let executeSequentially: ([Executable]) async -> [CompletionIndication]
 
     public init(
       handleInSingleTransaction: @escaping ([Request]) -> Void,
       perform: @escaping (CompositeSideEffect) async -> CompletionIndication,
-      executeSequentially: @escaping ([Executable]) async -> Void
+      executeSequentially: @escaping ([Executable]) async -> [CompletionIndication]
     ) {
       self.handleInSingleTransaction = handleInSingleTransaction
       self.perform = perform
@@ -86,21 +86,39 @@ public extension TaskBasedLogicModule {
 }
 
 extension TaskBasedLogicModule.ExecutionOptions: TaskBasedExecutableExecutor {
-  public func executeSequentially(_ executables: [TaskBasedLogicModule.Executable]) async {
+  public func execute(_ executable: TaskBasedLogicModule.Executable) async -> CompletionIndication {
+    let completionIndications = await self.executeSequentially([executable])
+
+    debugEnsure(completionIndications.count == 1,
+                "Invalid completion indications: \(completionIndications)")
+
+    return completionIndications[0]
+  }
+  
+  public func executeSequentially(
+    _ executables: [TaskBasedLogicModule.Executable]
+  ) async -> [CompletionIndication] {
     await self.executeSequentially(executables)
   }
 
-  public nonisolated func perform(_ sideEffect: CompositeSideEffect) {
+  public func performSuccessfully(_ sideEffect: CompositeSideEffect) {
     Task {
-      _ = await self.perform(sideEffect)
+      let completionIndication = await self.perform(sideEffect)
+      if let error = completionIndication.error {
+        fatalError("Side effect failed with error: \(error.humanReadableDescription)")
+      }
     }
+  }
+
+  public func performSuccessfully(_ sideEffect: SideEffect) {
+    self.performSuccessfully(.only(sideEffect))
   }
 
   public func perform(_ sideEffect: SideEffect) async -> CompletionIndication {
     return await self.perform(.only(sideEffect))
   }
 
-  public nonisolated func handleInSingleTransaction(_ requests: [Request]) {
+  public func handleInSingleTransaction(_ requests: [Request]) {
     self.handleInSingleTransaction(requests)
   }
 }

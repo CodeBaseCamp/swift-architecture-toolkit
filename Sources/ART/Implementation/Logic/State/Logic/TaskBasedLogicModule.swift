@@ -28,7 +28,7 @@ public actor TaskBasedLogicModule<
   private let observerReferences: [Any]
 
   /// Objects providing co-effect functionality.
-  public let coeffects: Coeffects
+  public nonisolated let coeffects: Coeffects
 
   /// Initializes with the given `model` and the given `staticObservers` tuple consisting of a model
   /// observer which is weakly held by the initialized instance and a type-erased reference to an
@@ -58,18 +58,44 @@ public actor TaskBasedLogicModule<
   }
 
   /// Sequentially executes the given `executables`.
-  public func executeSequentially(_ executables: [Executable]) async {
-    guard let currentExecutable = executables.first else {
-      return
+  @discardableResult
+  public func execute(_ executable: Executable) async -> CompletionIndication {
+    self.model.handleInSingleTransaction(executable.initialRequests, using: self.coeffects)
+
+    let result = await self.perform(executable.sideEffect)
+
+    switch executable.followUpBehavior {
+    case .nothing:
+      break
+    
+    case let .crashUponFailure(requests):
+      if let error = result.error {
+        fatalError("Error: \(error)")
+      }
+
+      self.model.handleInSingleTransaction(requests, using: self.coeffects)
+    
+    case let .requests(requests):
+      self.model.handleInSingleTransaction(
+        requiredLet(requests[result.successIndication], "Must exist"),
+        using: self.coeffects
+      )
     }
 
-    self.model.handleInSingleTransaction(currentExecutable.initialRequests, using: self.coeffects)
+    return result
+  }
 
-    await self.perform(currentExecutable.sideEffect)
+  /// Sequentially executes the given `executables`.
+  @discardableResult
+  public func executeSequentially(_ executables: [Executable]) async -> [CompletionIndication] {
+    guard let currentExecutable = executables.first else {
+      return []
+    }
 
-    self.model.handleInSingleTransaction(currentExecutable.finalRequests, using: self.coeffects)
+    let completionIndication = await self.execute(currentExecutable)
+    let completionIndications = await self.executeSequentially(Array(executables.dropFirst()))
 
-    await self.executeSequentially(Array(executables.dropFirst()))
+    return [completionIndication] + completionIndications
   }
 
   /// Returns a task performing the given `sideEffect`. Upon completion of the side effect, the
@@ -81,13 +107,24 @@ public actor TaskBasedLogicModule<
     return await self.sideEffectPerformer.task(performing: sideEffect, using: self.coeffects)
   }
 
-  /// Returns a task performing the given `sideEffect`. Upon completion of the side effect, the
-  /// given `completion` closure is invoked with the corresponding completion indication.
+  /// Performs the given `sideEffect` and returns the corresponding completion indication.
   @discardableResult
   public func perform(
     _ sideEffect: CompositeSideEffect
   ) async -> CompletionIndication {
     return await self.sideEffectPerformer.perform(sideEffect, using: self.coeffects)
+  }
+
+  /// Performs the given `sideEffect` asynchronously, ensuring that the side effect completed
+  /// successfully.
+  public nonisolated func performSuccessfully(_ sideEffect: CompositeSideEffect) {
+    Task {
+      let completionIndication =
+        await self.sideEffectPerformer.perform(sideEffect, using: self.coeffects)
+      if let error = completionIndication.error {
+        fatalError("Side effect failed with error: \(error.humanReadableDescription)")
+      }
+    }
   }
 
   /// Returns a task performing the given `sideEffect`. Upon completion of the side effect, the
@@ -96,7 +133,12 @@ public actor TaskBasedLogicModule<
   public func perform(
     _ sideEffect: SideEffect
   ) async -> CompletionIndication {
-    return await self.sideEffectPerformer.perform(.only(sideEffect), using: self.coeffects)
+    return await self.perform(.only(sideEffect))
+  }
+
+  /// Performs the given `sideEffect` asynchronously, ignoring any completion indication.
+  public nonisolated func performSuccessfully(_ sideEffect: SideEffect) {
+    self.performSuccessfully(.only(sideEffect))
   }
 
   public nonisolated func handleInSingleTransaction(_ requests: [Request]) {
