@@ -117,8 +117,14 @@ public class Model<
   Request: RequestProtocol,
   Coeffects: CoeffectsProtocol
 >: ModelProtocol, RequestHandler {
+  /// Currently added observers.
   private var observers = [WeakContainer<ModelObserver<State>>]()
+
+  /// Internally used store.
   private let store: Store<State, Request, Coeffects>
+
+  /// Internally used lock.
+  private let lock = NSRecursiveLock()
 
   /// Current state.
   public var state: State {
@@ -140,25 +146,39 @@ public class Model<
 
   /// See homonymous method of `ModelProtocol`.
   public func add(_ observer: ModelObserver<State>) {
-    observers.append(WeakContainer(containing: observer))
-    observer.handleInitiallyObservedState(store.state)
+    self.lock.executeWhileLocked {
+      self.observers.append(WeakContainer(containing: observer))
+    }
+
+    observer.handleInitiallyObservedState(self.store.state)
   }
 
   private func handleStateChange(_ change: Change<State>) {
+    self.remainingObservers.forEach {
+      $0.handleStateChange(change)
+    }
+  }
+
+  private var remainingObservers: [ModelObserver<State>] {
+    var remainingObservers = [ModelObserver<State>]()
     var containersToRemove = [WeakContainer<ModelObserver<State>>]()
 
-    self.observers.forEach { container in
-      guard let observer = container.weaklyHeldInstance else {
-        containersToRemove.append(container)
-        return
+    self.lock.executeWhileLocked {
+      self.observers.forEach { container in
+        guard let observer = container.weaklyHeldInstance else {
+          containersToRemove.append(container)
+          return
+        }
+
+        remainingObservers.append(observer)
       }
 
-      observer.handleStateChange(change)
+      containersToRemove.forEach { containerToRemove in
+        self.observers.removeAll(where: { $0 === containerToRemove })
+      }
     }
 
-    containersToRemove.forEach { containerToRemove in
-      self.observers.removeAll(where: { $0 === containerToRemove })
-    }
+    return remainingObservers
   }
 }
 
