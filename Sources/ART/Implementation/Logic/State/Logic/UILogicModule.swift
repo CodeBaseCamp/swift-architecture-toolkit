@@ -118,6 +118,21 @@ extension LogicModule.ExecutionOptions: ExecutableExecutor {
     return await self.perform(.only(sideEffect))
   }
 
+  /// Performs the given `sideEffect` and invokes the given `completion` block with the 
+  /// corresponding indication.
+  ///
+  /// - important This method should only be used if the `async` version of the method is not
+  ///             applicable.
+  public func perform(
+    _ sideEffect: CompositeSideEffect,
+    completion: @escaping (CompletionIndication) -> Void
+  ) {
+    Task {
+      let completionIndication = await self.perform(sideEffect)
+      completion(completionIndication)
+    }
+  }
+
   public func handleInSingleTransaction(_ requests: [Request]) {
     self.handleInSingleTransaction(requests)
   }
