@@ -76,10 +76,12 @@ public actor LogicModule<
       self.model.handleInSingleTransaction(requests, using: self.coeffects)
     
     case let .requests(requests):
-      self.model.handleInSingleTransaction(
-        requiredLet(requests[result.successIndication], "Must exist"),
-        using: self.coeffects
-      )
+      guard let error = result.error else {
+        self.model.handleInSingleTransaction(requiredLet(requests[.success], "Must exist"), using: self.coeffects)
+        return result
+      }
+
+      self.model.handleInSingleTransaction(requiredLet(requests[.failure], "Must exist"), using: self.coeffects)
     }
 
     return result
