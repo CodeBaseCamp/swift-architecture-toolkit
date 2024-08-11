@@ -5,6 +5,7 @@ import Foundation
 public enum ExecutableFollowUpBehavior<Request: RequestProtocol>: Equatable, Sendable {
   case nothing
   case crashUponFailure(successRequests: [Request])
+  case debugCrashUponFailure([SuccessIndication: [Request]])
   case requests([SuccessIndication: [Request]])
 }
 
@@ -41,7 +42,7 @@ public struct Executable<
 
   private static func validate(_ followUpBehavior: FollowUpBehavior) {
     switch followUpBehavior {
-    case .nothing, .crashUponFailure:
+    case .nothing, .crashUponFailure, .debugCrashUponFailure:
       break
     case let .requests(finalRequests):
       ensure(finalRequests[.success] != nil && finalRequests[.failure] != nil,
@@ -162,6 +163,10 @@ public extension Executable {
 public extension ExecutableFollowUpBehavior {
   static var crashUponFailure: Self {
     return .crashUponFailure(successRequests: [])
+  }
+
+  static var debugCrashUponFailure: Self {
+    return .debugCrashUponFailure([.failure: [], .success: []])
   }
 
   static func  requestsUponSuccess(_ requests: [Request]) -> Self {

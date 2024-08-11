@@ -75,6 +75,17 @@ public actor LogicModule<
 
       self.model.handleInSingleTransaction(requests, using: self.coeffects)
     
+    case let .debugCrashUponFailure(requests):
+      guard let error = result.error else {
+        self.model.handleInSingleTransaction(requiredLet(requests[.success], "Must exist"), using: self.coeffects)
+        return result
+      }
+
+      #if DEBUG
+        fatalError("Error: \(error)")
+      #endif
+      self.model.handleInSingleTransaction(requiredLet(requests[.failure], "Must exist"), using: self.coeffects)
+
     case let .requests(requests):
       guard let error = result.error else {
         self.model.handleInSingleTransaction(requiredLet(requests[.success], "Must exist"), using: self.coeffects)
