@@ -1,18 +1,18 @@
 version: 2.1
 
 orbs:
-  macos: circleci/macos@2
+  macos: circleci/macos@2.5.2
 
 parameters:
   xcode-version:
     type: string
-    default: "15.1.0"
+    default: "15.4.0"
 
 jobs:
   build-and-test-architecture-toolkit-job:
     macos:
       xcode: << pipeline.parameters.xcode-version >>
-    resource_class: macos.x86.medium.gen2
+    resource_class: macos.m1.medium.gen1
 
     steps:
       - checkout
