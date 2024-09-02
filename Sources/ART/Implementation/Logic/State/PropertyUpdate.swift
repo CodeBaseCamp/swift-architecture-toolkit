@@ -81,3 +81,5 @@ public struct ValueConverter<T: Equatable> {
     self.projectedValue(value) as! V
   }
 }
+
+extension PropertyUpdate: Sendable where T: Sendable {}
