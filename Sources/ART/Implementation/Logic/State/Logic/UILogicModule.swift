@@ -103,10 +103,14 @@ extension LogicModule.ExecutionOptions: ExecutableExecutor {
 
   public func performSuccessfully(_ sideEffect: CompositeSideEffect) {
     Task {
-      let completionIndication = await self.perform(sideEffect)
-      if let error = completionIndication.error {
-        fatalError("Side effect failed with error: \(error.humanReadableDescription)")
-      }
+      await self.performSuccessfully(sideEffect)
+    }
+  }
+
+  public func performSuccessfully(_ sideEffect: CompositeSideEffect) async {
+    let completionIndication = await self.perform(sideEffect)
+    if let error = completionIndication.error {
+      fatalError("Side effect failed with error: \(error.humanReadableDescription)")
     }
   }
 
