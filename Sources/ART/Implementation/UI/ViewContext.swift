@@ -4,8 +4,7 @@ import CasePaths
 import Combine
 import SwiftUI
 
-/// Object responsible for the model and the event sending mechanism of a view conforming to the
-/// `ModelView` protocol.
+/// Object responsible for the model and the event sending mechanism of a view conforming to the `ModelView` protocol.
 ///
 /// Inspired by `ViewStore` of `The Composable Architecture`.
 public class ViewContext<
@@ -94,8 +93,7 @@ public class ViewContext<
 }
 
 private struct WrappingModel<Model: Equatable>: Equatable {
-  /// ID whose change indicates the necessity to update the view described by the `model` of this
-  /// instance.
+  /// ID whose change indicates the necessity to update the view described by the `model` of this instance.
   let id: UUID
 
   /// Description of the view appearance.
