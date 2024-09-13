@@ -35,8 +35,7 @@ public struct ViewWithObservedContext<
 
 public extension View {
   /// Returns a copy of the receiver created by applying the given `content` closure to the receiver and the given
-  /// `context`. The returned view observes the given `context` and updates whenever its `model` changes by being
-  /// recreated using the given `content` closure.
+  /// `context`. The returned view observes the given `context` and updates whenever its `model` changes.
   ///
   /// - note: If the receiver is a `ModelView`, the `withObservedContext` method without the `context` parameter should
   ///         be used.
@@ -55,16 +54,16 @@ public extension View {
 }
 
 public extension ModelView {
-  /// Returns a copy of the receiver created by applying the given `content` closure to the receiver. The returned view
-  /// observes the given `context` and updates whenever its `model` changes by being recreated using the given `content`
-  /// closure.
+  /// Returns a copy of the receiver created by applying the given `content` closure to the receiver and the `context`
+  /// of the receiver. The returned view observes the `context` of the receiver and updates whenever its `model`
+  /// changes.
   ///
   /// - note: There is no need to use this method on a `ModelView` which is already observing its `context`.
   @inlinable func withObservedContext(
-    @ViewBuilder content: @escaping (Self) -> some View
+    @ViewBuilder content: @escaping (Self, Self.Context<Coeffects>) -> some View
   ) -> some View {
-    ViewWithObservedContext(self.context) { _ in
-      content(self)
+    ViewWithObservedContext(self.context) { context in
+      content(self, context)
     }
   }
 }

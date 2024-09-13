@@ -11,37 +11,37 @@ public extension ViewContext {
 
   func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
-    _ event: Event
+    _ eventClosure: @escaping @autoclosure () -> Event
   ) -> ViewContext<OtherModel, Event, Coeffects> {
-    return self.context(modelTransformation) { _ in event }
+    return self.context(modelTransformation) { _ in eventClosure() }
   }
 
   // MARK: StaticViewContext
 
   func staticContext<OtherModel: Equatable>(
-    _ model: OtherModel
+    _ modelClosure: @escaping @autoclosure () -> OtherModel
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
-    return self.staticContext({ _ in model }, { $0 })
+    return self.staticContext({ _ in modelClosure() }, { $0 })
   }
 
   func staticContext<OtherModel: Equatable>(
-    _ model: OtherModel,
-    _ event: Event
+    _ modelTransformation: @escaping (Model) -> OtherModel,
+    _ eventClosure: @escaping @autoclosure () -> Event
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
-    return self.staticContext({ _ in model }, { _ in event })
+    return self.staticContext(modelTransformation, { _ in eventClosure() })
   }
 
   func staticContext<OtherModel: Equatable, OtherEvent: Equatable>(
-    _ model: OtherModel,
+    _ modelClosure: @escaping @autoclosure () -> OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {
-    return self.staticContext({ _ in model }, eventTransformation)
+    return self.staticContext({ _ in modelClosure() }, eventTransformation)
   }
 
-  func staticContext<OtherEvent: Equatable>(
-    _ event: Event
-  ) -> StaticViewContext<Model, OtherEvent, Coeffects> {
-    return self.staticContext({ $0 }, { _ in event })
+  func staticContext(
+    _ eventClosure: @escaping @autoclosure () -> Event
+  ) -> StaticViewContext<Model, Event, Coeffects> {
+    return self.staticContext({ $0 }, { _ in eventClosure() })
   }
 
   func staticContext<OtherEvent: Equatable>(

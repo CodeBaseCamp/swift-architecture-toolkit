@@ -12,9 +12,15 @@ public extension ModelView {
 
   func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
-    _ event: Event
+    _ eventTransformation: @escaping @autoclosure () -> Event
   ) -> ViewContext<OtherModel, Event, Coeffects> {
-    return self.context.context(modelTransformation, event)
+    return self.context.context(modelTransformation, eventTransformation())
+  }
+
+  func context<OtherModel: Equatable>(
+    _ modelTransformation: @escaping (Model) -> OtherModel
+  ) -> ViewContext<OtherModel, Event, Coeffects> {
+    return self.context.context(modelTransformation, { $0 })
   }
 
   // Eventless context.
@@ -30,6 +36,19 @@ public extension ModelView {
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {
     return self.context.staticContext(modelTransformation, eventTransformation)
+  }
+
+  func staticContext<OtherModel: Equatable>(
+    _ modelTransformation: @escaping (Model) -> OtherModel,
+    _ eventTransformation: @escaping @autoclosure () -> Event
+  ) -> StaticViewContext<OtherModel, Event, Coeffects> {
+    return self.context.staticContext(modelTransformation, eventTransformation())
+  }
+
+  func staticContext<OtherModel: Equatable>(
+    _ modelTransformation: @escaping (Model) -> OtherModel
+  ) -> StaticViewContext<OtherModel, Event, Coeffects> {
+    return self.context.staticContext(modelTransformation, { $0 })
   }
 
   func staticContext<OtherModel: Equatable, OtherEvent: Equatable>(

@@ -6,19 +6,19 @@ import SwiftUI
 /// `NonOptionalContent1`, respectively. The view has a non-static `ViewContext`.
 ///
 /// Inspired by `IfLetStore` of `The Composable Architecture`.
-public struct NonStaticConditionalView<
+internal struct NonStaticConditionalView<
   Model: Equatable,
   Event: Hashable,
   Coeffects: CoeffectsProtocol,
   Content: View
 >: View {
-  public typealias Context = ViewContext<Model, Event, Coeffects>
-  public typealias OptionalModelContext = ViewContext<Model?, Event, Coeffects>
+  internal typealias Context = ViewContext<Model, Event, Coeffects>
+  internal typealias OptionalModelContext = ViewContext<Model?, Event, Coeffects>
 
   private let context: OptionalModelContext
   private let content: (OptionalModelContext) -> Content
 
-  public init<NonOptionalContent0, NonOptionalContent1>(
+  internal init<NonOptionalContent0, NonOptionalContent1>(
     _ context: OptionalModelContext,
     @ViewBuilder then nonOptionalContent0: @escaping (Context) -> NonOptionalContent0,
     @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
@@ -45,7 +45,7 @@ public struct NonStaticConditionalView<
     }
   }
 
-  public init<NonOptionalContent>(
+  internal init<NonOptionalContent>(
     _ context: OptionalModelContext,
     @ViewBuilder then nonOptionalContent: @escaping (Context) -> NonOptionalContent
   ) where Content == NonOptionalContent? {
@@ -67,7 +67,7 @@ public struct NonStaticConditionalView<
     }
   }
 
-  public var body: some View {
+  internal var body: some View {
     ViewWithObservedContext(self.context) {
       self.content($0)
     }

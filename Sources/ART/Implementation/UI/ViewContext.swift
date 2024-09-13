@@ -108,8 +108,7 @@ private struct WrappingModel<Model: Equatable>: Equatable {
 
 public extension ViewContext where Event == Never {
   func context<OtherModel: Equatable, OtherEvent: Equatable>(
-    _ modelTransformation: @escaping (Model) -> OtherModel,
-    _: @escaping (OtherEvent) -> Event
+    _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> ViewContext<OtherModel, OtherEvent, Coeffects> {
     return ViewContext<OtherModel, OtherEvent, Coeffects>(
       self.$wrappingModel.map { requiredLet($0, "Must not be nil") },

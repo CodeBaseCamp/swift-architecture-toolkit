@@ -46,6 +46,12 @@ public extension StaticModelView {
     return self.context.staticContext(modelTransformation, eventTransformation)
   }
 
+  func staticContext<OtherModel: Equatable>(
+    _ modelTransformation: @escaping (Model) -> OtherModel
+  ) -> StaticViewContext<OtherModel, Event, Coeffects> {
+    return self.context.staticContext(modelTransformation, { $0 })
+  }
+
   func staticContext<OtherModel: Equatable, OtherEvent: Equatable>(
     _ model: OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event

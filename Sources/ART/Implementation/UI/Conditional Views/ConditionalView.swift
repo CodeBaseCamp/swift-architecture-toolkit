@@ -12,20 +12,15 @@ public func ConditionalView<
   Model: Equatable,
   Event: Hashable,
   Coeffects: CoeffectsProtocol,
-  NonOptionalContent0,
-  NonOptionalContent1
+  NonOptionalContent0: View,
+  NonOptionalContent1: View
 >(
   _ context: ViewContext<Model?, Event, Coeffects>,
   @ViewBuilder then nonOptionalContent0: @escaping (
     ViewContext<Model, Event, Coeffects>
   ) -> NonOptionalContent0,
   @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
-) -> NonStaticConditionalView<
-  Model,
-  Event,
-  Coeffects,
-  _ConditionalContent<NonOptionalContent0, NonOptionalContent1>
-> {
+) -> some View {
   return NonStaticConditionalView(context, then: nonOptionalContent0, else: nonOptionalContent1)
 }
 
@@ -33,18 +28,13 @@ public func ConditionalView<
   Model: Equatable,
   Event: Hashable,
   Coeffects: CoeffectsProtocol,
-  NonOptionalContent
+  NonOptionalContent: View
 >(
   _ context: ViewContext<Model?, Event, Coeffects>,
   @ViewBuilder then nonOptionalContent: @escaping (
     ViewContext<Model, Event, Coeffects>
   ) -> NonOptionalContent
-) -> NonStaticConditionalView<
-  Model,
-  Event,
-  Coeffects,
-  NonOptionalContent?
-> {
+) -> some View {
   return NonStaticConditionalView(context, then: nonOptionalContent)
 }
 
@@ -58,20 +48,15 @@ public func ConditionalView<
   Model: Equatable,
   Event: Hashable,
   Coeffects: CoeffectsProtocol,
-  NonOptionalContent0,
-  NonOptionalContent1
+  NonOptionalContent0: View,
+  NonOptionalContent1: View
 >(
   _ context: StaticViewContext<Model?, Event, Coeffects>,
   @ViewBuilder then nonOptionalContent0: @escaping (
     StaticViewContext<Model, Event, Coeffects>
   ) -> NonOptionalContent0,
   @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
-) -> StaticConditionalView<
-  Model,
-  Event,
-  Coeffects,
-  _ConditionalContent<NonOptionalContent0, NonOptionalContent1>
-> {
+) -> some View {
   return StaticConditionalView(context, then: nonOptionalContent0, else: nonOptionalContent1)
 }
 
@@ -79,17 +64,342 @@ public func ConditionalView<
   Model: Equatable,
   Event: Hashable,
   Coeffects: CoeffectsProtocol,
-  NonOptionalContent
+  NonOptionalContent: View
 >(
   _ context: StaticViewContext<Model?, Event, Coeffects>,
   @ViewBuilder then nonOptionalContent: @escaping (
     StaticViewContext<Model, Event, Coeffects>
   ) -> NonOptionalContent
-) -> StaticConditionalView<
-  Model,
-  Event,
-  Coeffects,
-  NonOptionalContent?
-> {
+) -> some View {
   return StaticConditionalView(context, then: nonOptionalContent)
+}
+
+extension ModelView {
+  public func IfLet<
+    OtherModel: Equatable,
+    OtherEvent: Hashable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    _ eventTransformation: @escaping (OtherEvent) -> Event,
+    @ViewBuilder then nonOptionalContent0:
+      @escaping (ViewContext<OtherModel, OtherEvent, Coeffects>) -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return NonStaticConditionalView(
+      self.context(modelTransformation, eventTransformation),
+      then: nonOptionalContent0,
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent0:
+    @escaping (ViewContext<OtherModel, Event, Coeffects>) -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return NonStaticConditionalView(
+      self.context(modelTransformation),
+      then: nonOptionalContent0,
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent0: @escaping () -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return NonStaticConditionalView(
+      self.context(modelTransformation),
+      then: { _ in nonOptionalContent0() },
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent0:
+    @escaping (ViewContext<OtherModel, Never, Coeffects>) -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return NonStaticConditionalView(
+      self.eventlessContext(modelTransformation),
+      then: nonOptionalContent0,
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    OtherEvent: Hashable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    _ eventTransformation: @escaping (OtherEvent) -> Event,
+    @ViewBuilder then nonOptionalContent:
+      @escaping (ViewContext<OtherModel, OtherEvent, Coeffects>) -> NonOptionalContent
+  ) -> some View {
+    return NonStaticConditionalView(self.context(modelTransformation, eventTransformation), then: nonOptionalContent)
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    _ eventTransformation: @escaping @autoclosure () -> Event,
+    @ViewBuilder then nonOptionalContent:
+    @escaping (ViewContext<OtherModel, Event, Coeffects>) -> NonOptionalContent
+  ) -> some View {
+    return NonStaticConditionalView(self.context(modelTransformation, eventTransformation()), then: nonOptionalContent)
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent: @escaping () -> NonOptionalContent
+  ) -> some View {
+    return NonStaticConditionalView(self.context(modelTransformation), then: { _ in nonOptionalContent() })
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent:
+      @escaping (ViewContext<OtherModel, Never, Coeffects>) -> NonOptionalContent
+  ) -> some View {
+    return NonStaticConditionalView(
+      self.eventlessContext(modelTransformation),
+      then: nonOptionalContent
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    OtherEvent: Hashable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    _ eventTransformation: @escaping (OtherEvent) -> Event,
+    @ViewBuilder then nonOptionalContent0: @escaping (
+      StaticViewContext<OtherModel, OtherEvent, Coeffects>
+    ) -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return StaticConditionalView(
+      self.staticContext(modelTransformation, eventTransformation),
+      then: nonOptionalContent0,
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent0: @escaping (
+      StaticViewContext<OtherModel, Event, Coeffects>
+    ) -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return StaticConditionalView(
+      self.staticContext(modelTransformation),
+      then: nonOptionalContent0,
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent0: @escaping (
+      StaticViewContext<OtherModel, Never, Coeffects>
+    ) -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return StaticConditionalView(
+      self.staticEventlessContext(modelTransformation),
+      then: nonOptionalContent0,
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    OtherEvent: Hashable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    _ eventTransformation: @escaping (OtherEvent) -> Event,
+    @ViewBuilder then nonOptionalContent:
+      @escaping (StaticViewContext<OtherModel, OtherEvent, Coeffects>) -> NonOptionalContent
+  ) -> some View {
+    return StaticConditionalView(self.staticContext(modelTransformation, eventTransformation), then: nonOptionalContent)
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent:
+    @escaping (StaticViewContext<OtherModel, Event, Coeffects>) -> NonOptionalContent
+  ) -> some View {
+    return StaticConditionalView(self.staticContext(modelTransformation), then: nonOptionalContent)
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent:
+    @escaping (StaticViewContext<OtherModel, Never, Coeffects>) -> NonOptionalContent
+  ) -> some View {
+    return StaticConditionalView(self.staticEventlessContext(modelTransformation), then: nonOptionalContent)
+  }
+}
+
+extension StaticModelView {
+  public func IfLet<
+    OtherModel: Equatable,
+    OtherEvent: Hashable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    _ eventTransformation: @escaping (OtherEvent) -> Event,
+    @ViewBuilder then nonOptionalContent0:
+    @escaping (StaticViewContext<OtherModel, OtherEvent, Coeffects>) -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return StaticConditionalView(
+      self.staticContext(modelTransformation, eventTransformation),
+      then: nonOptionalContent0,
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent0:
+    @escaping (StaticViewContext<OtherModel, Event, Coeffects>) -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return StaticConditionalView(
+      self.staticContext(modelTransformation),
+      then: nonOptionalContent0,
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent0: @escaping () -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return StaticConditionalView(
+      self.staticContext(modelTransformation),
+      then: { _ in nonOptionalContent0() },
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent0: View,
+    NonOptionalContent1: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent0:
+    @escaping (StaticViewContext<OtherModel, Never, Coeffects>) -> NonOptionalContent0,
+    @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
+  ) -> some View {
+    return StaticConditionalView(
+      self.staticEventlessContext(modelTransformation),
+      then: nonOptionalContent0,
+      else: nonOptionalContent1
+    )
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    OtherEvent: Hashable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    _ eventTransformation: @escaping (OtherEvent) -> Event,
+    @ViewBuilder then nonOptionalContent:
+    @escaping (StaticViewContext<OtherModel, OtherEvent, Coeffects>) -> NonOptionalContent
+  ) -> some View {
+    return StaticConditionalView(self.staticContext(modelTransformation, eventTransformation), then: nonOptionalContent)
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent:
+    @escaping (StaticViewContext<OtherModel, Event, Coeffects>) -> NonOptionalContent
+  ) -> some View {
+    return StaticConditionalView(self.staticContext(modelTransformation), then: nonOptionalContent)
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent: @escaping () -> NonOptionalContent
+  ) -> some View {
+    return StaticConditionalView(self.staticContext(modelTransformation), then: { _ in nonOptionalContent() })
+  }
+
+  public func IfLet<
+    OtherModel: Equatable,
+    NonOptionalContent: View
+  >(
+    _ modelTransformation: @escaping (Model) -> OtherModel?,
+    @ViewBuilder then nonOptionalContent:
+    @escaping (StaticViewContext<OtherModel, Never, Coeffects>) -> NonOptionalContent
+  ) -> some View {
+    return StaticConditionalView(
+      self.staticEventlessContext(modelTransformation),
+      then: nonOptionalContent
+    )
+  }
 }
