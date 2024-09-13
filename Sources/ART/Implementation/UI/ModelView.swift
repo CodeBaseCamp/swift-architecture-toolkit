@@ -42,6 +42,12 @@ public extension ModelView {
   func handle(_ event: Event) {
     self.context.handle(event)
   }
+
+  func contextIgnoringEvents<OtherModel: Equatable, OtherEvent: Equatable>(
+    _ modelTransformation: @escaping (Model) -> OtherModel
+  ) -> ViewContext<OtherModel, OtherEvent, Coeffects> {
+    self.context.contextIgnoringEvents(modelTransformation)
+  }
 }
 
 public extension ModelView {

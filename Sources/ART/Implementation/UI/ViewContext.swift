@@ -142,6 +142,16 @@ public extension ViewContext {
     ) { _ in }
   }
 
+  func contextIgnoringEvents<OtherModel: Equatable, OtherEvent: Equatable>(
+    _ modelTransformation: @escaping (Model) -> OtherModel
+  ) -> ViewContext<OtherModel, OtherEvent, Coeffects> {
+    return ViewContext<OtherModel, OtherEvent, Coeffects>(
+      self.$wrappingModel.map { requiredLet($0, "Must not be nil") },
+      { $0.withModel(transformedBy: modelTransformation) },
+      coeffects: self.coeffects
+    ) { _ in }
+  }
+
   func immutableBinding<T>(_ conversionClosure: @escaping (Model) -> T) -> Binding<T> {
     return Binding {
       return conversionClosure(self.model)
