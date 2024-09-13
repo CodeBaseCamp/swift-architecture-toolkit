@@ -68,7 +68,7 @@ public struct NonStaticConditionalView<
   }
 
   public var body: some View {
-    ViewWithContext(self.context) {
+    ViewWithObservedContext(self.context) {
       self.content($0)
     }
   }

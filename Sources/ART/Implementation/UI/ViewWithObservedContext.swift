@@ -2,7 +2,7 @@
 
 import SwiftUI
 
-public struct ViewWithContext<
+public struct ViewWithObservedContext<
   Model: Equatable,
   Event: Hashable,
   Coeffects: CoeffectsProtocol,
