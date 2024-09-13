@@ -25,7 +25,7 @@ extension App {
         Text("Resource downloaded")
       case let .downloadError(errorDescription):
         ErrorMessageView(
-          self.staticContext(
+          self.context(
             { $0.errorMessageViewModel(errorDescription) },
             Event.errorMessageView
           )

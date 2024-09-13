@@ -132,7 +132,7 @@ public extension ViewContext {
     }
   }
 
-  func eventlessContext<OtherModel: Equatable>(
+  func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> ViewContext<OtherModel, Never, Coeffects> {
     return ViewContext<OtherModel, Never, Coeffects>(

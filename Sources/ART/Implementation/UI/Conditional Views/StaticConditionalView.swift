@@ -30,7 +30,7 @@ internal struct StaticConditionalView<
       if var model: Model = context.model {
         return ViewBuilder.buildEither(
           first: nonOptionalContent0(
-            context.staticContext(
+            context.context(
               {
                 model = $0 ?? model
                 return model
@@ -53,7 +53,7 @@ internal struct StaticConditionalView<
     self.content = { context in
       if var model: Model = context.model {
         return nonOptionalContent(
-          context.staticContext(
+          context.context(
             {
               model = $0 ?? model
               return model

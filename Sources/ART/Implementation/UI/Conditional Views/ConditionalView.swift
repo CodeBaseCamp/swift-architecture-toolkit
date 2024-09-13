@@ -105,7 +105,7 @@ extension ModelView {
     @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
   ) -> some View {
     return NonStaticConditionalView(
-      self.context(modelTransformation),
+      self.context(modelTransformation, { $0 }),
       then: nonOptionalContent0,
       else: nonOptionalContent1
     )
@@ -138,7 +138,7 @@ extension ModelView {
     @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
   ) -> some View {
     return NonStaticConditionalView(
-      self.eventlessContext(modelTransformation),
+      self.context(modelTransformation),
       then: nonOptionalContent0,
       else: nonOptionalContent1
     )
@@ -188,7 +188,7 @@ extension ModelView {
       @escaping (ViewContext<OtherModel, Never, Coeffects>) -> NonOptionalContent
   ) -> some View {
     return NonStaticConditionalView(
-      self.eventlessContext(modelTransformation),
+      self.context(modelTransformation),
       then: nonOptionalContent
     )
   }
@@ -207,7 +207,7 @@ extension ModelView {
     @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
   ) -> some View {
     return StaticConditionalView(
-      self.staticContext(modelTransformation, eventTransformation),
+      self.context(modelTransformation, eventTransformation),
       then: nonOptionalContent0,
       else: nonOptionalContent1
     )
@@ -225,7 +225,7 @@ extension ModelView {
     @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
   ) -> some View {
     return StaticConditionalView(
-      self.staticContext(modelTransformation),
+      self.context(modelTransformation),
       then: nonOptionalContent0,
       else: nonOptionalContent1
     )
@@ -243,7 +243,7 @@ extension ModelView {
     @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
   ) -> some View {
     return StaticConditionalView(
-      self.staticEventlessContext(modelTransformation),
+      self.context(modelTransformation),
       then: nonOptionalContent0,
       else: nonOptionalContent1
     )
@@ -259,7 +259,7 @@ extension ModelView {
     @ViewBuilder then nonOptionalContent:
       @escaping (StaticViewContext<OtherModel, OtherEvent, Coeffects>) -> NonOptionalContent
   ) -> some View {
-    return StaticConditionalView(self.staticContext(modelTransformation, eventTransformation), then: nonOptionalContent)
+    return StaticConditionalView(self.context(modelTransformation, eventTransformation), then: nonOptionalContent)
   }
 
   public func IfLet<
@@ -270,7 +270,7 @@ extension ModelView {
     @ViewBuilder then nonOptionalContent:
     @escaping (StaticViewContext<OtherModel, Event, Coeffects>) -> NonOptionalContent
   ) -> some View {
-    return StaticConditionalView(self.staticContext(modelTransformation), then: nonOptionalContent)
+    return StaticConditionalView(self.context(modelTransformation), then: nonOptionalContent)
   }
 
   public func IfLet<
@@ -281,7 +281,7 @@ extension ModelView {
     @ViewBuilder then nonOptionalContent:
     @escaping (StaticViewContext<OtherModel, Never, Coeffects>) -> NonOptionalContent
   ) -> some View {
-    return StaticConditionalView(self.staticEventlessContext(modelTransformation), then: nonOptionalContent)
+    return StaticConditionalView(self.context(modelTransformation), then: nonOptionalContent)
   }
 }
 
@@ -299,7 +299,7 @@ extension StaticModelView {
     @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
   ) -> some View {
     return StaticConditionalView(
-      self.staticContext(modelTransformation, eventTransformation),
+      self.context(modelTransformation, eventTransformation),
       then: nonOptionalContent0,
       else: nonOptionalContent1
     )
@@ -316,7 +316,7 @@ extension StaticModelView {
     @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
   ) -> some View {
     return StaticConditionalView(
-      self.staticContext(modelTransformation),
+      self.context(modelTransformation),
       then: nonOptionalContent0,
       else: nonOptionalContent1
     )
@@ -332,7 +332,7 @@ extension StaticModelView {
     @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
   ) -> some View {
     return StaticConditionalView(
-      self.staticContext(modelTransformation),
+      self.context(modelTransformation),
       then: { _ in nonOptionalContent0() },
       else: nonOptionalContent1
     )
@@ -349,7 +349,7 @@ extension StaticModelView {
     @ViewBuilder else nonOptionalContent1: () -> NonOptionalContent1
   ) -> some View {
     return StaticConditionalView(
-      self.staticEventlessContext(modelTransformation),
+      self.context(modelTransformation),
       then: nonOptionalContent0,
       else: nonOptionalContent1
     )
@@ -365,7 +365,7 @@ extension StaticModelView {
     @ViewBuilder then nonOptionalContent:
     @escaping (StaticViewContext<OtherModel, OtherEvent, Coeffects>) -> NonOptionalContent
   ) -> some View {
-    return StaticConditionalView(self.staticContext(modelTransformation, eventTransformation), then: nonOptionalContent)
+    return StaticConditionalView(self.context(modelTransformation, eventTransformation), then: nonOptionalContent)
   }
 
   public func IfLet<
@@ -376,7 +376,7 @@ extension StaticModelView {
     @ViewBuilder then nonOptionalContent:
     @escaping (StaticViewContext<OtherModel, Event, Coeffects>) -> NonOptionalContent
   ) -> some View {
-    return StaticConditionalView(self.staticContext(modelTransformation), then: nonOptionalContent)
+    return StaticConditionalView(self.context(modelTransformation), then: nonOptionalContent)
   }
 
   public func IfLet<
@@ -386,7 +386,7 @@ extension StaticModelView {
     _ modelTransformation: @escaping (Model) -> OtherModel?,
     @ViewBuilder then nonOptionalContent: @escaping () -> NonOptionalContent
   ) -> some View {
-    return StaticConditionalView(self.staticContext(modelTransformation), then: { _ in nonOptionalContent() })
+    return StaticConditionalView(self.context(modelTransformation), then: { _ in nonOptionalContent() })
   }
 
   public func IfLet<
@@ -398,7 +398,7 @@ extension StaticModelView {
     @escaping (StaticViewContext<OtherModel, Never, Coeffects>) -> NonOptionalContent
   ) -> some View {
     return StaticConditionalView(
-      self.staticEventlessContext(modelTransformation),
+      self.context(modelTransformation),
       then: nonOptionalContent
     )
   }

@@ -19,54 +19,46 @@ public extension ModelView {
 
   func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
-  ) -> ViewContext<OtherModel, Event, Coeffects> {
-    return self.context.context(modelTransformation, { $0 })
-  }
-
-  // Eventless context.
-
-  func eventlessContext<OtherModel: Equatable>(
-    _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> ViewContext<OtherModel, Never, Coeffects> {
-    return self.context.eventlessContext(modelTransformation)
+    return self.context.context(modelTransformation)
   }
 
-  func staticContext<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {
-    return self.context.staticContext(modelTransformation, eventTransformation)
+    return self.context.context(modelTransformation, eventTransformation)
   }
 
-  func staticContext<OtherModel: Equatable>(
+  func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventTransformation: @escaping @autoclosure () -> Event
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
-    return self.context.staticContext(modelTransformation, eventTransformation())
+    return self.context.context(modelTransformation, eventTransformation())
   }
 
-  func staticContext<OtherModel: Equatable>(
+  func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
-    return self.context.staticContext(modelTransformation, { $0 })
+    return self.context.context(modelTransformation, { $0 })
   }
 
-  func staticContext<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable, OtherEvent: Equatable>(
     _ model: OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {
-    return self.context.staticContext(model, eventTransformation)
+    return self.context.context(model, eventTransformation)
   }
 
-  func staticContext<OtherModel: Equatable>(
+  func context<OtherModel: Equatable>(
     _ model: OtherModel
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
-    return self.context.staticContext(model)
+    return self.context.context(model)
   }
 
-  func staticEventlessContext<OtherModel: Equatable>(
+  func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> StaticViewContext<OtherModel, Never, Coeffects> {
-    return self.context.staticEventlessContext(modelTransformation)
+    return self.context.context(modelTransformation)
   }
 }

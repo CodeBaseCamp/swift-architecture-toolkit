@@ -30,7 +30,7 @@ public struct StaticViewContext<
 }
 
 public extension StaticViewContext {
-  func staticContext<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {
@@ -42,7 +42,7 @@ public extension StaticViewContext {
     }
   }
 
-  func staticContext<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable, OtherEvent: Equatable>(
     _ model: OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {
@@ -54,7 +54,7 @@ public extension StaticViewContext {
     }
   }
 
-  func staticContext<OtherModel: Equatable>(
+  func context<OtherModel: Equatable>(
     _ model: OtherModel
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
     return StaticViewContext<OtherModel, Event, Coeffects>(
@@ -65,7 +65,7 @@ public extension StaticViewContext {
     }
   }
 
-  func staticEventlessContext<OtherModel: Equatable>(
+  func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> StaticViewContext<OtherModel, Never, Coeffects> {
     return StaticViewContext<OtherModel, Never, Coeffects>(
@@ -76,7 +76,7 @@ public extension StaticViewContext {
 }
 
 public extension StaticViewContext where Event == Never {
-  func staticContext<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {

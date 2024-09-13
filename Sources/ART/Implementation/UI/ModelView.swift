@@ -27,10 +27,6 @@ public extension ModelView {
     self.init(context: context)
   }
 
-  init(withoutEvents context: ViewContext<Model, Never, Coeffects>) {
-    self.init(context: context.context({ $0 }) { _ in fatalError("Must never be reached") })
-  }
-
   var model: Model {
     return self.context.model
   }
