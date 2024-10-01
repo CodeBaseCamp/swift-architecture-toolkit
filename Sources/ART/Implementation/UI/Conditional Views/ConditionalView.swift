@@ -169,6 +169,22 @@ extension ModelView {
     return NonStaticConditionalView(self.context(modelTransformation, eventTransformation()), then: nonOptionalContent)
   }
 
+  public func IfLet<NonOptionalContent: View>(
+    _ modelTransformation: @escaping (Model) -> Bool,
+    @ViewBuilder then nonOptionalContent: @escaping () -> NonOptionalContent
+  ) -> some View {
+    return NonStaticConditionalView(
+      self.context(modelTransformation),
+      then: {
+        if $0.model {
+          nonOptionalContent()
+        } else {
+          EmptyView()
+        }
+      }
+    )
+  }
+
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent: View
