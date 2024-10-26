@@ -59,6 +59,7 @@ public extension ModelView {
   /// changes.
   ///
   /// - note: There is no need to use this method on a `ModelView` which is already observing its `context`.
+  @MainActor
   @inlinable func withObservedContext(
     @ViewBuilder content: @escaping (Self, Self.Context<Coeffects>) -> some View
   ) -> some View {

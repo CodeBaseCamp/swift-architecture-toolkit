@@ -8,15 +8,18 @@ public protocol ModelViewWithContent: ModelView {
   associatedtype Content: View
 
   /// Initializes with the given `context` and `content`.
+  @MainActor
   init(context: ViewContext<Model, Event, Coeffects>, content: @escaping () -> Content)
 }
 
 public extension ModelViewWithContent {
   /// Initializes with the given `context` and `content`.
+  @MainActor
   init(_ context: ViewContext<Model, Event, Coeffects>, content: @escaping () -> Content) {
     self.init(context: context, content: content)
   }
 
+  @MainActor
   init(context: ViewContext<Model, Event, Coeffects>) {
     self.init(context, content: { fatalError() })
   }

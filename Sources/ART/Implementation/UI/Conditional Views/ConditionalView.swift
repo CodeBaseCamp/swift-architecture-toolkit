@@ -75,6 +75,7 @@ public func ConditionalView<
 }
 
 extension ModelView {
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     OtherEvent: Hashable,
@@ -94,6 +95,7 @@ extension ModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent0: View,
@@ -111,6 +113,7 @@ extension ModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent0: View,
@@ -127,6 +130,7 @@ extension ModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent0: View,
@@ -144,6 +148,7 @@ extension ModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     OtherEvent: Hashable,
@@ -157,6 +162,7 @@ extension ModelView {
     return NonStaticConditionalView(self.context(modelTransformation, eventTransformation), then: nonOptionalContent)
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent: View
@@ -169,6 +175,7 @@ extension ModelView {
     return NonStaticConditionalView(self.context(modelTransformation, eventTransformation()), then: nonOptionalContent)
   }
 
+  @MainActor
   public func IfLet<NonOptionalContent: View>(
     _ modelTransformation: @escaping (Model) -> Bool,
     @ViewBuilder then nonOptionalContent: @escaping () -> NonOptionalContent
@@ -185,6 +192,7 @@ extension ModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent: View
@@ -195,6 +203,7 @@ extension ModelView {
     return NonStaticConditionalView(self.context(modelTransformation), then: { _ in nonOptionalContent() })
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent: View
@@ -209,6 +218,7 @@ extension ModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     OtherEvent: Hashable,
@@ -229,6 +239,7 @@ extension ModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent0: View,
@@ -247,6 +258,7 @@ extension ModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent0: View,
@@ -265,6 +277,7 @@ extension ModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     OtherEvent: Hashable,
@@ -278,6 +291,7 @@ extension ModelView {
     return StaticConditionalView(self.context(modelTransformation, eventTransformation), then: nonOptionalContent)
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent: View
@@ -289,6 +303,7 @@ extension ModelView {
     return StaticConditionalView(self.context(modelTransformation), then: nonOptionalContent)
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent: View
@@ -302,6 +317,7 @@ extension ModelView {
 }
 
 extension StaticModelView {
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     OtherEvent: Hashable,
@@ -321,6 +337,7 @@ extension StaticModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent0: View,
@@ -338,6 +355,7 @@ extension StaticModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent0: View,
@@ -354,6 +372,7 @@ extension StaticModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent0: View,
@@ -371,6 +390,7 @@ extension StaticModelView {
     )
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     OtherEvent: Hashable,
@@ -384,6 +404,7 @@ extension StaticModelView {
     return StaticConditionalView(self.context(modelTransformation, eventTransformation), then: nonOptionalContent)
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent: View
@@ -395,6 +416,7 @@ extension StaticModelView {
     return StaticConditionalView(self.context(modelTransformation), then: nonOptionalContent)
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent: View
@@ -405,6 +427,7 @@ extension StaticModelView {
     return StaticConditionalView(self.context(modelTransformation), then: { _ in nonOptionalContent() })
   }
 
+  @MainActor
   public func IfLet<
     OtherModel: Equatable,
     NonOptionalContent: View

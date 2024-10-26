@@ -211,6 +211,7 @@ public extension ModelView where Model: ViewModel {
   ///
   /// @important The instances encapsulated by `Observer` are held weakly. Therefore, the `Observer`
   /// must be held strongly by the caller until updates to the returned view should be stopped.
+  @MainActor
   static func instance<ObservedModel: ModelProtocol>(
     observing propertyPath: PropertyPath<ObservedModel.State, Model.State>,
     of model: ObservedModel,
@@ -231,6 +232,7 @@ public extension ModelView where Model: ViewModel {
   /// Returns a new view and a lens model which can be used to update the view.
   ///
   /// @important The returned lens model is held weakly.
+  @MainActor
   static func instance<ObservedModel: ModelProtocol>(
     observing keyPath: KeyPath<ObservedModel.State, Model.State>,
     of model: ObservedModel,
@@ -246,6 +248,7 @@ public extension ModelView where Model: ViewModel {
   /// Returns a new view and a lens model which can be used to update the view.
   ///
   /// @important The returned lens model is held weakly.
+  @MainActor
   static func instance<ObservedModel: ModelProtocol>(
     observing casePath: AnyCasePath<ObservedModel.State, Model.State>,
     of model: ObservedModel,

@@ -3,6 +3,7 @@
 import SwiftUI
 
 public extension ModelView {
+  @MainActor
   func context<OtherModel: Equatable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
@@ -10,6 +11,7 @@ public extension ModelView {
     return self.context.context(modelTransformation, eventTransformation)
   }
 
+  @MainActor
   func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventTransformation: @escaping @autoclosure () -> Event
@@ -17,12 +19,14 @@ public extension ModelView {
     return self.context.context(modelTransformation, eventTransformation())
   }
 
+  @MainActor
   func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> ViewContext<OtherModel, Never, Coeffects> {
     return self.context.context(modelTransformation)
   }
 
+  @MainActor
   func context<OtherModel: Equatable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
@@ -30,6 +34,7 @@ public extension ModelView {
     return self.context.context(modelTransformation, eventTransformation)
   }
 
+  @MainActor
   func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventTransformation: @escaping @autoclosure () -> Event
@@ -37,12 +42,14 @@ public extension ModelView {
     return self.context.context(modelTransformation, eventTransformation())
   }
 
+  @MainActor
   func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
     return self.context.context(modelTransformation, { $0 })
   }
 
+  @MainActor
   func context<OtherModel: Equatable, OtherEvent: Equatable>(
     _ model: OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
@@ -50,12 +57,14 @@ public extension ModelView {
     return self.context.context(model, eventTransformation)
   }
 
+  @MainActor
   func context<OtherModel: Equatable>(
     _ model: OtherModel
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
     return self.context.context(model)
   }
 
+  @MainActor
   func context<OtherModel: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> StaticViewContext<OtherModel, Never, Coeffects> {

@@ -15,30 +15,37 @@ public protocol ModelView: View {
 
   typealias Context<Coeffects: CoeffectsProtocol> = ViewContext<Model, Event, Coeffects>
 
+  @MainActor
   var context: Context<Coeffects> { get }
 
   /// Initializes with the given `context`.
+  @MainActor
   init(context: Context<Coeffects>)
 }
 
 public extension ModelView {
   /// Initializes with the given `context`.
+  @MainActor
   init(_ context: Context<Coeffects>) {
     self.init(context: context)
   }
 
+  @MainActor
   var model: Model {
     return self.context.model
   }
 
+  @MainActor
   var coeffects: Coeffects {
     return self.context.coeffects
   }
 
+  @MainActor
   func handle(_ event: Event) {
     self.context.handle(event)
   }
 
+  @MainActor
   func contextIgnoringEvents<OtherModel: Equatable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> ViewContext<OtherModel, OtherEvent, Coeffects> {
