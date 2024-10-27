@@ -3,7 +3,7 @@
 import Foundation
 
 /// Protocol to be implemented by objects providing coeffects.
-public protocol CoeffectsProtocol {
+public protocol CoeffectsProtocol: Sendable {
   var `default`: DefaultCoeffectsProtocol { get }
 }
 
