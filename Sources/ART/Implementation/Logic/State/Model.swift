@@ -1,6 +1,5 @@
 // Copyright © Rouven Strauss. MIT license.
 
-import CasePaths
 import Foundation
 
 /// Object for observing the value of a `State` of a `ModelProtocol` instance, following a
@@ -34,26 +33,6 @@ public final class ModelObserver<R: Equatable> {
         changeClosure(Change(previousValue, currentValue))
       }
     )
-  }
-
-  public convenience init(
-    for casePath: AnyCasePath<R, Void>,
-    initiallyObservedValue: @escaping (Bool) -> Void,
-    change changeClosure: @escaping (Change<Bool>) -> Void
-  ) {
-    self.init(for: PropertyPath(casePath),
-              initiallyObservedValue: initiallyObservedValue,
-              change: changeClosure)
-  }
-
-  public convenience init<T: Equatable>(
-    for casePath: AnyCasePath<R, T>,
-    initiallyObservedValue: @escaping (T?) -> Void,
-    change changeClosure: @escaping (Change<T?>) -> Void
-  ) {
-    self.init(for: PropertyPath(casePath),
-              initiallyObservedValue: initiallyObservedValue,
-              change: changeClosure)
   }
 
   public convenience init(

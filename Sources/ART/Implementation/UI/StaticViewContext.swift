@@ -1,6 +1,5 @@
 // Copyright © Rouven Strauss. MIT license.
 
-import CasePaths
 import Combine
 
 /// Object responsible for the model and the event sending mechanism of a view conforming to the

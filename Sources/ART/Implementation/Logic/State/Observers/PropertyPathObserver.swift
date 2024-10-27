@@ -1,7 +1,5 @@
 // Copyright © Rouven Strauss. MIT license.
 
-import CasePaths
-
 /// Object for observing a value at a specific property path.
 public class PropertyPathObserver<R: Equatable, T: Equatable>: ValueObserver<R, T> {
   private let modelObserverClosure: () -> ModelObserver<R>
@@ -121,30 +119,6 @@ public extension PropertyPathObserver {
   }
 
   static func observer(
-    for path: AnyCasePath<R, Void>,
-    initiallyObservedValue: @escaping (Bool) -> Void,
-    change: @escaping (Change<Bool>) -> Void
-  ) -> PropertyPathObserver<R, Bool> where T == Bool {
-    return observer(
-      for: PropertyPath(path),
-      initiallyObservedValue: initiallyObservedValue,
-      change: change
-    )
-  }
-
-  static func observer(
-    for path: AnyCasePath<R, T>,
-    initiallyObservedValue: @escaping (T?) -> Void,
-    change: @escaping (Change<T?>) -> Void
-  ) -> PropertyPathObserver<R, T> {
-    return observer(
-      for: PropertyPath(path),
-      initiallyObservedValue: initiallyObservedValue,
-      change: change
-    )
-  }
-
-  static func observer(
     for path: PropertyPath<R, Void>,
     initiallyObservedValue: @escaping (Bool) -> Void,
     change: @escaping (Change<Bool>) -> Void
@@ -165,20 +139,6 @@ public extension PropertyPathObserver {
   static func observer(
     for path: KeyPath<R, T>,
     alwaysExecuting closure: @escaping (T) -> Void
-  ) -> PropertyPathObserver<R, T> {
-    return .observer(for: path, initiallyObservedValue: closure, change: { closure($0.current) })
-  }
-
-  static func observer(
-    for path: AnyCasePath<R, Void>,
-    alwaysExecuting closure: @escaping (Bool) -> Void
-  ) -> PropertyPathObserver<R, Bool> where T == Bool {
-    return .observer(for: path, initiallyObservedValue: closure, change: { closure($0.current) })
-  }
-
-  static func observer(
-    for path: AnyCasePath<R, T>,
-    alwaysExecuting closure: @escaping (T?) -> Void
   ) -> PropertyPathObserver<R, T> {
     return .observer(for: path, initiallyObservedValue: closure, change: { closure($0.current) })
   }

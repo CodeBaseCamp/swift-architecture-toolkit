@@ -1,6 +1,5 @@
 // Copyright © Rouven Strauss. MIT license.
 
-import CasePaths
 import Combine
 import SwiftUI
 
@@ -240,22 +239,6 @@ public extension ModelView where Model: ViewModel {
     handlingEventsWith eventClosure: @escaping (Event) -> Void
   ) -> (Self, ModelViewObservers) {
     return instance(observing: PropertyPath(keyPath),
-                    of: model,
-                    using: coeffects,
-                    handlingEventsWith: eventClosure)
-  }
-
-  /// Returns a new view and a lens model which can be used to update the view.
-  ///
-  /// @important The returned lens model is held weakly.
-  @MainActor
-  static func instance<ObservedModel: ModelProtocol>(
-    observing casePath: AnyCasePath<ObservedModel.State, Model.State>,
-    of model: ObservedModel,
-    coeffects: Coeffects,
-    handlingEventsWith eventClosure: @escaping (Event) -> Void
-  ) -> (Self, ModelViewObservers) {
-    return instance(observing: PropertyPath(casePath),
                     of: model,
                     using: coeffects,
                     handlingEventsWith: eventClosure)
