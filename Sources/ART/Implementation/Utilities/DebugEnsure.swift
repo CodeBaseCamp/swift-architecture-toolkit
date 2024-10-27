@@ -12,3 +12,12 @@
     ensure(conditionClosure(), messageClosure())
   #endif
 }
+
+/// Causes a fatal error if and only if run in debug mode.
+@inlinable public func debugCrash(
+  _ messageClosure: @autoclosure () -> String
+) {
+  #if DEBUG
+    fatalError(messageClosure())
+  #endif
+}
