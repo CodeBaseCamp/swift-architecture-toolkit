@@ -6,7 +6,7 @@ import Foundation
 public enum CompositeSideEffect<
   SideEffect: SideEffectProtocol,
   Error: ErrorProtocol
->: Equatable {
+>: Equatable, Sendable {
   case doNothing
 
   case only(SideEffect)
