@@ -18,7 +18,7 @@ public struct Executable<
   Request: RequestProtocol,
   SideEffect: SideEffectProtocol,
   Error: ErrorProtocol
-> {
+>: Sendable {
   public typealias ExecutableSideEffect = CompositeSideEffect<SideEffect, Error>
   public typealias FollowUpBehavior = ExecutableFollowUpBehavior<Request>
 
