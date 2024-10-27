@@ -145,7 +145,7 @@ final class UsageExampleSpec: AsyncSpec {
 
           expect(observedData).to(beNil())
 
-          view.handle(.downloadButtonPress)
+          await view.handle(.downloadButtonPress)
 
           await expect(observedData).toEventuallyNot(beNil())
         }
@@ -183,7 +183,7 @@ private extension App.LogicModule {
       staticObservers: []
     )
     let uiLogicModule = await logicModule.newUILogicModule()
-    let (view, observer) = App.MainView.instance(
+    let (view, observer) = await App.MainView.instance(
       observing: \.self,
       of: model,
       using: coeffects

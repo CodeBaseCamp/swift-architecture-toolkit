@@ -47,7 +47,7 @@ struct FakeModelView: View, ModelView {
   }
 }
 
-final class ModelViewSpec: QuickSpec {
+final class ModelViewSpec: AsyncSpec {
   override class func spec() {
     var view: FakeModelView!
 
@@ -74,9 +74,11 @@ final class ModelViewSpec: QuickSpec {
           }
         )
 
-        (view, observers) = FakeModelView.instance(observing: \FakeState.stateB,
-                                                   of: model,
-                                                   using: coeffects) { _ in }
+        (view, observers) = await FakeModelView.instance(
+          observing: \FakeState.stateB,
+          of: model,
+          using: coeffects
+        ) { _ in }
       }
 
       it("creates observers") {
@@ -86,18 +88,18 @@ final class ModelViewSpec: QuickSpec {
       it("holds observers weakly") {
         weak var weaklyHeldObserver: ModelViewObservers?
 
-        autoreleasepool {
-          let stronglyHeldObserver: ModelViewObservers
-          (view, stronglyHeldObserver) = FakeModelView.instance(
-            observing: \FakeState.stateB,
-            of: model,
-            using: coeffects
-          ) { _ in }
-          weaklyHeldObserver = stronglyHeldObserver
+        var stronglyHeldObserver: ModelViewObservers?
+        (view, stronglyHeldObserver) = await FakeModelView.instance(
+          observing: \FakeState.stateB,
+          of: model,
+          using: coeffects
+        ) { _ in }
+        weaklyHeldObserver = stronglyHeldObserver
 
-          expect(view).toNot(beNil())
-          expect(weaklyHeldObserver).toNot(beNil())
-        }
+        expect(view).toNot(beNil())
+        expect(weaklyHeldObserver).toNot(beNil())
+
+        stronglyHeldObserver = nil
 
         expect(view).toNot(beNil())
         expect(weaklyHeldObserver).to(beNil())
