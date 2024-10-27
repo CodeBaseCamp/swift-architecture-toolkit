@@ -3,17 +3,17 @@
 import Foundation
 
 /// Representation of an update of a property with a new value.
-public struct PropertyUpdate<T: Equatable> {
+public struct PropertyUpdate<T: Equatable>: @unchecked Sendable {
   /// Key path to the property to update.
   public let keyPath: PartialKeyPath<T>
 
   /// Value to update the property with.
-  public let value: Any
+  public let value: any Sendable
 
   /// Closure to apply for updating.
   private let updated: (T) -> (T)
 
-  private let equals: (Any) -> Bool
+  private let equals: (any Sendable) -> Bool
 
   private init<S: Equatable>(keyPath: WritableKeyPath<T, S>, value: S) {
     self.keyPath = keyPath
@@ -81,5 +81,3 @@ public struct ValueConverter<T: Equatable> {
     self.projectedValue(value) as! V
   }
 }
-
-extension PropertyUpdate: Sendable where T: Sendable {}
