@@ -3,7 +3,7 @@
 import Foundation
 
 /// Value object representing a value with well-defined default value.
-public struct ValueWithDefault<T: Codable & Equatable>: Codable, Equatable, HumanReadable {
+public struct ValueWithDefault<T: Codable & Equatable & Sendable>: Codable, Equatable, HumanReadable, Sendable {
   /// Value.
   public var value: T
 

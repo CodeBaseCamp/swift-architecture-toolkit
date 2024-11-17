@@ -3,28 +3,28 @@
 import Foundation
 
 /// Object responsible for the logic executed upon UI events.
-public class UIEventLogicModule<
+public final class UIEventLogicModule<
   Event: Equatable,
   State: StateProtocol,
   Request: RequestProtocol,
   SideEffectPerformer: SideEffectPerformerProtocol
-> {
+>: Sendable {
   public typealias SideEffectError = SideEffectPerformer.SideEffectError
   public typealias Coeffects = SideEffectPerformer.Coeffects
   public typealias Module = LogicModule<State, Request, SideEffectPerformer>
 
   private let logicModule: Module
   private let coeffects: Coeffects
-  private let handleEventClosure: (Event, State, Module.ExecutionOptions, Coeffects) -> Void
-  private let shouldHandleClosure: (Event, State) -> Bool
+  private let handleEventClosure: @Sendable (Event, State, Module.ExecutionOptions, Coeffects) async -> Void
+  private let shouldHandleClosure: @Sendable (Event, State) -> Bool
 
   /// Initializes with the given `logicModule`, `coeffects`, `eventHandlingClosure`, and
   /// `shouldHandleClosure`.
   fileprivate init(
     _ logicModule: Module,
     _ coeffects: Coeffects,
-    _ eventHandlingClosure: @escaping (Event, State, Module.ExecutionOptions, Coeffects) -> Void,
-    _ shouldHandleClosure: @escaping (Event, State) -> Bool = { _, _ in return true }
+    _ eventHandlingClosure: @escaping @Sendable (Event, State, Module.ExecutionOptions, Coeffects) async -> Void,
+    _ shouldHandleClosure: @escaping @Sendable (Event, State) -> Bool = { _, _ in return true }
   ) {
     self.logicModule = logicModule
     self.coeffects = coeffects
@@ -32,7 +32,7 @@ public class UIEventLogicModule<
     self.shouldHandleClosure = shouldHandleClosure
   }
 
-  public func handle(_ event: Event, given state: State) {
+  public func handle(_ event: Event, given state: State) async {
     guard self.shouldHandle(event, given: state) else {
       return
     }
@@ -42,7 +42,7 @@ public class UIEventLogicModule<
       perform: self.logicModule.perform,
       executeSequentially: self.logicModule.executeSequentially
     )
-    handleEventClosure(event, state, executionOptions, coeffects)
+    await handleEventClosure(event, state, executionOptions, coeffects)
   }
 
   private func shouldHandle(_ event: Event, given state: State) -> Bool {
@@ -51,20 +51,20 @@ public class UIEventLogicModule<
 }
 
 public extension LogicModule {
-  struct ExecutionOptions {
+  struct ExecutionOptions: Sendable {
     public typealias CompositeSideEffect = ART.CompositeSideEffect<SideEffect, SideEffectError>
     public typealias CompletionIndication = SideEffectPerformer.CompletionIndication
 
-    public let handleInSingleTransaction: ([Request]) -> Void
+    public let handleInSingleTransaction: @Sendable ([Request]) async -> Void
 
-    public let perform: (CompositeSideEffect) async -> CompletionIndication
+    public let perform: @Sendable (CompositeSideEffect) async -> CompletionIndication
 
-    public let executeSequentially: ([Executable]) async -> [CompletionIndication]
+    public let executeSequentially: @Sendable ([Executable]) async -> [CompletionIndication]
 
     public init(
-      handleInSingleTransaction: @escaping ([Request]) -> Void,
-      perform: @escaping (CompositeSideEffect) async -> CompletionIndication,
-      executeSequentially: @escaping ([Executable]) async -> [CompletionIndication]
+      handleInSingleTransaction: @escaping @Sendable ([Request]) async -> Void,
+      perform: @escaping @Sendable (CompositeSideEffect) async -> CompletionIndication,
+      executeSequentially: @escaping @Sendable ([Executable]) async -> [CompletionIndication]
     ) {
       self.handleInSingleTransaction = handleInSingleTransaction
       self.perform = perform
@@ -73,8 +73,8 @@ public extension LogicModule {
   }
 
   nonisolated func viewLogic<Event: Equatable>(
-    handleEvent: @escaping (Event, State, ExecutionOptions, Coeffects) -> Void,
-    shouldHandle: @escaping (Event, State) -> Bool = { _, _ in return true }
+    handleEvent: @escaping @Sendable (Event, State, ExecutionOptions, Coeffects) async -> Void,
+    shouldHandle: @escaping @Sendable (Event, State) -> Bool = { _, _ in return true }
   ) -> UIEventLogicModule<
     Event,
     State,
@@ -101,12 +101,6 @@ extension LogicModule.ExecutionOptions: ExecutableExecutor {
     await self.executeSequentially(executables)
   }
 
-  public func performSuccessfully(_ sideEffect: CompositeSideEffect) {
-    Task {
-      await self.performSuccessfully(sideEffect)
-    }
-  }
-
   public func performSuccessfully(_ sideEffect: CompositeSideEffect) async {
     let completionIndication = await self.perform(sideEffect)
     if let error = completionIndication.error {
@@ -114,30 +108,11 @@ extension LogicModule.ExecutionOptions: ExecutableExecutor {
     }
   }
 
-  public func performSuccessfully(_ sideEffect: SideEffect) {
-    self.performSuccessfully(.only(sideEffect))
-  }
-
   public func perform(_ sideEffect: SideEffect) async -> CompletionIndication {
     return await self.perform(.only(sideEffect))
   }
 
-  /// Performs the given `sideEffect` and invokes the given `completion` block with the 
-  /// corresponding indication.
-  ///
-  /// - important This method should only be used if the `async` version of the method is not
-  ///             applicable.
-  public func perform(
-    _ sideEffect: CompositeSideEffect,
-    completion: @escaping (CompletionIndication) -> Void
-  ) {
-    Task {
-      let completionIndication = await self.perform(sideEffect)
-      completion(completionIndication)
-    }
-  }
-
-  public func handleInSingleTransaction(_ requests: [Request]) {
-    self.handleInSingleTransaction(requests)
+  public func handleInSingleTransaction(_ requests: [Request]) async {
+    await self.handleInSingleTransaction(requests)
   }
 }

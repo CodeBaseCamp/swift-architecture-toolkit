@@ -6,12 +6,12 @@
 ///
 /// - note For more information about state, requests, or coeffects, refer to the corresponding 
 ///        protocols.
-public protocol ReducerProtocol {
+public protocol ReducerProtocol: Sendable {
   associatedtype State
   associatedtype Request: RequestProtocol
   associatedtype Coeffects
 
   /// Reduces the given `State` instance and the given `Request` instance to a new `State` value, 
   /// in-place. The given `Coeffects` instance can be used for retrieval of coeffects.
-  var reduce: (inout State, [Request], Coeffects) -> Void { get }
+  var reduce: @Sendable (inout State, [Request], Coeffects) -> Void { get }
 }

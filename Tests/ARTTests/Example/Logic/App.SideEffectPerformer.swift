@@ -9,7 +9,7 @@ extension App {
     typealias Coeffects = App.Coeffects
     typealias Result<Error: ErrorProtocol> =
       CompletionIndication<CompositeError<SideEffectExecutionError<Error>>>
-    typealias SideEffectClosure = (SideEffect, Coeffects) async -> Result<SideEffectError>
+    typealias SideEffectClosure = @Sendable (SideEffect, Coeffects) async -> Result<SideEffectError>
 
     func task(
       performing sideEffect: CompositeSideEffect,

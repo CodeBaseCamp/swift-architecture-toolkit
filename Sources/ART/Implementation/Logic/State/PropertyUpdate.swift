@@ -15,7 +15,7 @@ public struct PropertyUpdate<T: Equatable>: @unchecked Sendable {
 
   private let equals: (any Sendable) -> Bool
 
-  private init<S: Equatable>(keyPath: WritableKeyPath<T, S>, value: S) {
+  private init<S: Equatable & Sendable>(keyPath: WritableKeyPath<T, S>, value: S) {
     self.keyPath = keyPath
     self.value = value
     self.updated = {
@@ -27,7 +27,7 @@ public struct PropertyUpdate<T: Equatable>: @unchecked Sendable {
   }
 
   /// Returns a new instance with the given `keyPath` and `value`.
-  public static func instance<S: Equatable>(_ keyPath: WritableKeyPath<T, S>, _ value: S) -> Self {
+  public static func instance<S: Equatable & Sendable>(_ keyPath: WritableKeyPath<T, S>, _ value: S) -> Self {
     return Self(keyPath: keyPath, value: value)
   }
 
@@ -61,7 +61,7 @@ public struct ValueConverter<T: Equatable> {
     self.projectedValue = projectedValue
   }
 
-  private init<S: Equatable>(keyPath: WritableKeyPath<T, S>) {
+  private init<S: Equatable & Sendable>(keyPath: WritableKeyPath<T, S>) {
     self.init(
       keyPath: keyPath,
       update: { .instance(keyPath, $0 as! S) },
@@ -69,7 +69,7 @@ public struct ValueConverter<T: Equatable> {
     )
   }
 
-  public static func unconverted<S: Equatable>(_ keyPath: WritableKeyPath<T, S>) -> Self {
+  public static func unconverted<S: Equatable & Sendable>(_ keyPath: WritableKeyPath<T, S>) -> Self {
     return Self(keyPath: keyPath)
   }
 

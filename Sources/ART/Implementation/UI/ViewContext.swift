@@ -7,10 +7,10 @@ import SwiftUI
 ///
 /// Inspired by `ViewStore` of `The Composable Architecture`.
 public class ViewContext<
-  Model: Equatable,
-  Event: Hashable,
+  Model: Equatable & Sendable,
+  Event: Hashable & Sendable,
   Coeffects: CoeffectsProtocol
->: ObservableObject {
+>: ObservableObject, @unchecked Sendable {
   @Published
   fileprivate var wrappingModel: WrappingModel<Model>! {
     didSet {
@@ -84,21 +84,25 @@ public class ViewContext<
       },
       change: {
         let model = requiredLet($0.current, "Must not be nil")
-        context.wrappingModel = .init(id: model.id, model: model)
+        Task {
+          await MainActor.run {
+            context.wrappingModel = .init(id: model.id, model: model)
+          }
+        }
       }
     )
     return (context, observer)
   }
 }
 
-private struct WrappingModel<Model: Equatable>: Equatable {
+private struct WrappingModel<Model: Equatable & Sendable>: Equatable, Sendable {
   /// ID whose change indicates the necessity to update the view described by the `model` of this instance.
   let id: UUID
 
   /// Description of the view appearance.
   let model: Model
 
-  func withModel<OtherModel: Equatable>(
+  func withModel<OtherModel: Equatable & Sendable>(
     transformedBy modelTransformation: (Model) -> OtherModel
   ) -> WrappingModel<OtherModel> {
     return WrappingModel<OtherModel>(id: self.id, model: modelTransformation(self.model))
@@ -106,7 +110,7 @@ private struct WrappingModel<Model: Equatable>: Equatable {
 }
 
 public extension ViewContext where Event == Never {
-  func context<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable & Sendable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> ViewContext<OtherModel, OtherEvent, Coeffects> {
     return ViewContext<OtherModel, OtherEvent, Coeffects>(
@@ -118,7 +122,7 @@ public extension ViewContext where Event == Never {
 }
 
 public extension ViewContext {
-  func context<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable & Sendable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> ViewContext<OtherModel, OtherEvent, Coeffects> {
@@ -131,7 +135,7 @@ public extension ViewContext {
     }
   }
 
-  func context<OtherModel: Equatable>(
+  func context<OtherModel: Equatable & Sendable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> ViewContext<OtherModel, Never, Coeffects> {
     return ViewContext<OtherModel, Never, Coeffects>(
@@ -141,7 +145,7 @@ public extension ViewContext {
     ) { _ in }
   }
 
-  func contextIgnoringEvents<OtherModel: Equatable, OtherEvent: Equatable>(
+  func contextIgnoringEvents<OtherModel: Equatable & Sendable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> ViewContext<OtherModel, OtherEvent, Coeffects> {
     return ViewContext<OtherModel, OtherEvent, Coeffects>(
@@ -151,7 +155,7 @@ public extension ViewContext {
     ) { _ in }
   }
 
-  func immutableBinding<T>(_ conversionClosure: @escaping (Model) -> T) -> Binding<T> {
+  func immutableBinding<T>(_ conversionClosure: @escaping @Sendable (Model) -> T) -> Binding<T> {
     return Binding {
       return conversionClosure(self.model)
     } set: { _ in }
@@ -165,7 +169,7 @@ public extension ViewContext {
     }
   }
 
-  func binding(_ eventClosure: @escaping (Model) -> Event) -> Binding<Model> {
+  func binding(_ eventClosure: @escaping @Sendable (Model) -> Event) -> Binding<Model> {
     return Binding {
       return self.model
     } set: {
@@ -174,8 +178,8 @@ public extension ViewContext {
   }
 
   func binding<T>(
-    _ conversionClosure: @escaping (Model) -> T,
-    _ eventClosure: @escaping (T) -> Event
+    _ conversionClosure: @escaping @Sendable (Model) -> T,
+    _ eventClosure: @escaping @Sendable (T) -> Event
   ) -> Binding<T> {
     return Binding {
       return conversionClosure(self.model)
@@ -185,9 +189,20 @@ public extension ViewContext {
   }
 
   func binding<T>(
-    _ conversionClosure: @escaping (Model) -> T?,
+    _ conversionClosure: @escaping @Sendable (Model) -> T,
+    _ eventClosure: @escaping @Sendable (T) -> Void
+  ) -> Binding<T> {
+    return Binding {
+      return conversionClosure(self.model)
+    } set: {
+      eventClosure($0)
+    }
+  }
+
+  func binding<T: Sendable>(
+    _ conversionClosure: @escaping @Sendable (Model) -> T?,
     fallbackValue: T,
-    _ eventClosure: @escaping (T) -> Event
+    _ eventClosure: @escaping @Sendable (T) -> Event
   ) -> Binding<T> {
     return Binding {
       return conversionClosure(self.model) ?? fallbackValue
@@ -205,42 +220,55 @@ public class ModelViewObservers {
   }
 }
 
+public struct ModelViewCreationResult<T: ModelView>: @unchecked Sendable {
+  public let view: T
+  public let observers: ModelViewObservers
+}
+
 public extension ModelView where Model: ViewModel {
-  /// Returns a new view and an `Observer` instance.
+  /// Returns a result comprised of the desired view and a `ModelViewObservers` instance.
   ///
-  /// @important The instances encapsulated by `Observer` are held weakly. Therefore, the `Observer`
-  /// must be held strongly by the caller until updates to the returned view should be stopped.
+  /// @important The instances encapsulated by the `ModelViewObservers` returned as part of the result are held weakly.
+  /// Therefore, the `ModelViewObservers` must be held strongly by the caller until updates to the returned view should
+  /// be stopped.
   @MainActor
   static func instance<ObservedModel: ModelProtocol>(
     observing propertyPath: PropertyPath<ObservedModel.State, Model.State>,
     of model: ObservedModel,
     using coeffects: Coeffects,
     handlingEventsWith eventClosure: @escaping (Event) -> Void
-  ) -> (Self, ModelViewObservers) {
+  ) async -> ModelViewCreationResult<Self> {
     let (context, observer) = ViewContext<Model, Event, Coeffects>.instanceWithObserver(
       coeffects: coeffects,
       handle: eventClosure
     )
     let lensModel: LensModel<Model, ObservedModel, Model.State> =
       .instance(observing: propertyPath, of: model)
-    lensModel.add(observer)
+    await lensModel.add(observer)
     let view = Self(context: context)
-    return (view, ModelViewObservers(observers: [lensModel, observer]))
+    return ModelViewCreationResult(
+      view: view,
+      observers: ModelViewObservers(observers: [lensModel, observer])
+    )
   }
 
-  /// Returns a new view and a lens model which can be used to update the view.
+  /// Returns a result comprised of the desired view and a `ModelViewObservers` instance.
   ///
-  /// @important The returned lens model is held weakly.
+  /// @important The instances encapsulated by the `ModelViewObservers` returned as part of the result are held weakly.
+  /// Therefore, the `ModelViewObservers` must be held strongly by the caller until updates to the returned view should
+  /// be stopped.
   @MainActor
   static func instance<ObservedModel: ModelProtocol>(
     observing keyPath: KeyPath<ObservedModel.State, Model.State>,
     of model: ObservedModel,
     using coeffects: Coeffects,
     handlingEventsWith eventClosure: @escaping (Event) -> Void
-  ) -> (Self, ModelViewObservers) {
-    return instance(observing: PropertyPath(keyPath),
-                    of: model,
-                    using: coeffects,
-                    handlingEventsWith: eventClosure)
+  ) async -> ModelViewCreationResult<Self> {
+    return await instance(
+      observing: PropertyPath(keyPath),
+      of: model,
+      using: coeffects,
+      handlingEventsWith: eventClosure
+    )
   }
 }

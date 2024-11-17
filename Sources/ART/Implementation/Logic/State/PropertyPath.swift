@@ -9,10 +9,10 @@ precedencegroup PropertyPathCombine {
 
 infix operator ~: PropertyPathCombine
 
-public class PartialPropertyPath<Root> {}
+public class PartialPropertyPath<Root: Sendable>: @unchecked Sendable {}
 
 /// Object constituting the path from the root of a `struct` to an internal property.
-public class PropertyPath<Root, Value>: PartialPropertyPath<Root> {
+public class PropertyPath<Root, Value>: PartialPropertyPath<Root>, @unchecked Sendable {
   private let extractor: (Root) -> Value?
 
   private init(_ extractor: @escaping (Root) -> Value?) {

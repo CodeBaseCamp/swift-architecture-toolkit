@@ -1,7 +1,10 @@
 // Copyright © Rouven Strauss. MIT license.
 
 /// Object for observing a value at a specific property path.
-public class PropertyPathObserver<R: Equatable, T: Equatable>: ValueObserver<R, T> {
+public class PropertyPathObserver<
+  R: Equatable & Sendable,
+  T: Equatable & Sendable
+>: ValueObserver<R, T>, @unchecked Sendable {
   private let modelObserverClosure: () -> ModelObserver<R>
 
   /// Object which can be used to observe values of type `R`.
@@ -24,8 +27,8 @@ public class PropertyPathObserver<R: Equatable, T: Equatable>: ValueObserver<R, 
 
   private convenience init(
     for keyPath: KeyPath<R, T>,
-    initiallyObservedValue: @escaping (T) -> Void,
-    change changeClosure: @escaping (Change<T>) -> Void
+    initiallyObservedValue: @escaping @Sendable (T) -> Void,
+    change changeClosure: @escaping @Sendable (Change<T>) -> Void
   ) {
     self.init(
       for: PropertyPath(keyPath),
@@ -50,8 +53,8 @@ public class PropertyPathObserver<R: Equatable, T: Equatable>: ValueObserver<R, 
 
   private init(
     for propertyPath: PropertyPath<R, Void>,
-    initiallyObservedValue: @escaping (Bool) -> Void,
-    change changeClosure: @escaping (Change<Bool>) -> Void
+    initiallyObservedValue: @escaping @Sendable (Bool) -> Void,
+    change changeClosure: @escaping @Sendable (Change<Bool>) -> Void
   ) where T == Bool {
     self.modelObserverClosure = {
       ModelObserver(
@@ -83,8 +86,8 @@ public class PropertyPathObserver<R: Equatable, T: Equatable>: ValueObserver<R, 
 
   private init(
     for propertyPath: PropertyPath<R, T>,
-    initiallyObservedValue: @escaping (T?) -> Void,
-    change: @escaping (Change<T?>) -> Void
+    initiallyObservedValue: @escaping @Sendable (T?) -> Void,
+    change: @escaping @Sendable (Change<T?>) -> Void
   ) {
     self.modelObserverClosure = Self.newModelObserverClosure(
       propertyPath,
@@ -96,8 +99,8 @@ public class PropertyPathObserver<R: Equatable, T: Equatable>: ValueObserver<R, 
 
   private static func newModelObserverClosure(
     _ propertyPath: PropertyPath<R, T>,
-    _ initiallyObservedValue: @escaping (T?) -> Void,
-    _ change: @escaping (Change<T?>) -> Void
+    _ initiallyObservedValue: @escaping @Sendable (T?) -> Void,
+    _ change: @escaping @Sendable (Change<T?>) -> Void
   ) -> (() -> ModelObserver<R>) {
     return {
       ModelObserver(
@@ -112,24 +115,24 @@ public class PropertyPathObserver<R: Equatable, T: Equatable>: ValueObserver<R, 
 public extension PropertyPathObserver {
   static func observer(
     for path: KeyPath<R, T>,
-    initiallyObservedValue: @escaping (T) -> Void,
-    change: @escaping (Change<T>) -> Void
+    initiallyObservedValue: @escaping @Sendable (T) -> Void,
+    change: @escaping @Sendable (Change<T>) -> Void
   ) -> PropertyPathObserver<R, T> {
     PropertyPathObserver(for: path, initiallyObservedValue: initiallyObservedValue, change: change)
   }
 
   static func observer(
     for path: PropertyPath<R, Void>,
-    initiallyObservedValue: @escaping (Bool) -> Void,
-    change: @escaping (Change<Bool>) -> Void
+    initiallyObservedValue: @escaping @Sendable (Bool) -> Void,
+    change: @escaping @Sendable (Change<Bool>) -> Void
   ) -> PropertyPathObserver<R, Bool> where T == Bool {
     PropertyPathObserver(for: path, initiallyObservedValue: initiallyObservedValue, change: change)
   }
 
   static func observer(
     for path: PropertyPath<R, T>,
-    initiallyObservedValue: @escaping (T?) -> Void,
-    change: @escaping (Change<T?>) -> Void
+    initiallyObservedValue: @escaping @Sendable (T?) -> Void,
+    change: @escaping @Sendable (Change<T?>) -> Void
   ) -> PropertyPathObserver<R, T> {
     PropertyPathObserver(for: path, initiallyObservedValue: initiallyObservedValue, change: change)
   }
@@ -138,21 +141,14 @@ public extension PropertyPathObserver {
 public extension PropertyPathObserver {
   static func observer(
     for path: KeyPath<R, T>,
-    alwaysExecuting closure: @escaping (T) -> Void
+    alwaysExecuting closure: @escaping @Sendable (T) -> Void
   ) -> PropertyPathObserver<R, T> {
     return .observer(for: path, initiallyObservedValue: closure, change: { closure($0.current) })
   }
 
   static func observer(
-    for path: PropertyPath<R, Void>,
-    alwaysExecuting closure: @escaping (Bool) -> Void
-  ) -> PropertyPathObserver<R, Bool> where T == Bool {
-    return .observer(for: path, initiallyObservedValue: closure, change: { closure($0.current) })
-  }
-
-  static func observer(
     for path: PropertyPath<R, T>,
-    alwaysExecuting closure: @escaping (T?) -> Void
+    alwaysExecuting closure: @escaping @Sendable (T?) -> Void
   ) -> PropertyPathObserver<R, T> {
     return .observer(for: path, initiallyObservedValue: closure, change: { closure($0.current) })
   }
@@ -161,8 +157,8 @@ public extension PropertyPathObserver {
 /// Protocol implemented by objects providing an `PropertyPathObserver` via which the object can be
 /// informed about changes of a value at a specific key path.
 public protocol PropertyPathObserverProvider {
-  associatedtype R: Equatable
-  associatedtype T: Equatable
+  associatedtype R: Equatable & Sendable
+  associatedtype T: Equatable & Sendable
 
   /// Object via which the receiver can be informed about changes of a value at a specific key path.
   var propertyPathObserver: PropertyPathObserver<R, T> { get }

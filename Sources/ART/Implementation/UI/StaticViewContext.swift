@@ -7,8 +7,8 @@ import Combine
 ///
 /// Inspired by `ViewStore` of `The Composable Architecture`.
 public struct StaticViewContext<
-  Model: Equatable,
-  Event: Hashable,
+  Model: Equatable & Sendable,
+  Event: Hashable & Sendable,
   Coeffects: CoeffectsProtocol
 > {
   public let model: Model
@@ -29,7 +29,7 @@ public struct StaticViewContext<
 }
 
 public extension StaticViewContext {
-  func context<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable & Sendable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {
@@ -41,7 +41,7 @@ public extension StaticViewContext {
     }
   }
 
-  func context<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable & Sendable, OtherEvent: Equatable>(
     _ model: OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {
@@ -53,7 +53,7 @@ public extension StaticViewContext {
     }
   }
 
-  func context<OtherModel: Equatable>(
+  func context<OtherModel: Equatable & Sendable>(
     _ model: OtherModel
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
     return StaticViewContext<OtherModel, Event, Coeffects>(
@@ -64,7 +64,7 @@ public extension StaticViewContext {
     }
   }
 
-  func context<OtherModel: Equatable>(
+  func context<OtherModel: Equatable & Sendable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> StaticViewContext<OtherModel, Never, Coeffects> {
     return StaticViewContext<OtherModel, Never, Coeffects>(
@@ -75,7 +75,7 @@ public extension StaticViewContext {
 }
 
 public extension StaticViewContext where Event == Never {
-  func context<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable & Sendable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {

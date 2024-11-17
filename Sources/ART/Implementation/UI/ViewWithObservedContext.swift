@@ -5,8 +5,8 @@ import SwiftUI
 /// View observing a given `ViewContext` and wrapping another view of type `Content` which is recreated using changes of
 /// aforementioned context.
 public struct ViewWithObservedContext<
-  Model: Equatable,
-  Event: Hashable,
+  Model: Equatable & Sendable,
+  Event: Hashable & Sendable,
   Coeffects: CoeffectsProtocol,
   Content: View
 >: View {
@@ -40,8 +40,8 @@ public extension View {
   /// - note: If the receiver is a `ModelView`, the `withObservedContext` method without the `context` parameter should
   ///         be used.
   @inlinable func withObservedContext<
-    Model: Equatable,
-    Event: Hashable,
+    Model: Equatable & Sendable,
+    Event: Hashable & Sendable,
     Coeffects: CoeffectsProtocol
   >(
     _ context: ViewContext<Model, Event, Coeffects>,

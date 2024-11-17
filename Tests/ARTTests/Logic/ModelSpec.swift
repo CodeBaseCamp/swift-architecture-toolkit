@@ -21,7 +21,7 @@ extension TestState: StateProtocol {
   }
 }
 
-final class ModelSpec: QuickSpec {
+final class ModelSpec: AsyncSpec {
   override class func spec() {
     context("observers") {
       context("key path observer") {
@@ -50,76 +50,83 @@ final class ModelSpec: QuickSpec {
           let observer = ModelObserver(for: \FakeState.stateA,
                                        initiallyObservedValue: { _ in },
                                        change: { _ in })
-          model.add(observer)
+          await model.add(observer)
         }
 
         it("holds observer weakly") {
-          weak var weakObserver: ModelObserver<FakeState>?
+          weak var weaklyHeldObserver: ModelObserver<FakeState>?
 
-          autoreleasepool {
-            let observer = ModelObserver(for: \FakeState.stateA,
-                                         initiallyObservedValue: { _ in },
-                                         change: { _ in })
-            weakObserver = observer
-            model.add(observer)
+          var observer: ModelObserver? = ModelObserver(
+            for: \FakeState.stateA,
+            initiallyObservedValue: { _ in },
+            change: { _ in }
+          )
+          weaklyHeldObserver = observer
 
-            expect(weakObserver).toNot(beNil())
-          }
+          await model.add(observer!)
 
-          expect(weakObserver).to(beNil())
+          expect(weaklyHeldObserver).toNot(beNil())
+
+          observer = nil
+
+          expect(weaklyHeldObserver).to(beNil())
         }
 
         context("execution") {
           context("root key path") {
             context("initially observed value") {
-              var receivedValue: FakeState?
-              var observer: PropertyPathObserver<FakeState, FakeState>!
-
-              beforeEach {
-                receivedValue = nil
-                observer = .observer(for: \FakeState.self,
-                                     initiallyObservedValue: { receivedValue = $0 },
-                                     change: { _ in })
-              }
-
               it("executes observer callback upon adding of observer") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\FakeState.self, FakeState.self)
+
+
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedValue = await receiver.value
 
                 expect(receivedValue).toNot(beNil())
                 expect(receivedValue) == initialState
               }
 
               it("does not execute observer callback upon state change") {
-                model.add(observer)
-                receivedValue = nil
+                let (receiver, observer) = receiverAndObserver(\FakeState.self, FakeState.self)
 
-                model.handle(.a(.updateOfValue), using: coeffects)
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                await receiver.setValue(nil)
+
+                await model.handle(.a(.updateOfValue), using: coeffects)
+
+                let receivedValue = await receiver.value
 
                 expect(receivedValue).to(beNil())
               }
             }
 
             context("change") {
-              var receivedChange: Change<FakeState>?
-              var observer: PropertyPathObserver<FakeState, FakeState>!
-
-              beforeEach {
-                receivedChange = nil
-                observer = .observer(for: \FakeState.self,
-                                     initiallyObservedValue: { _ in },
-                                     change: { change in receivedChange = change })
-              }
-
               it("does not execute observer callback upon adding of observer") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\FakeState.self, FakeState.self)
+
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedChange = await receiver.change
 
                 expect(receivedChange).to(beNil())
               }
 
               it("executes observer callback upon state change") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\FakeState.self, FakeState.self)
 
-                model.handle(.a(.updateOfValue), using: coeffects)
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                await model.handle(.a(.updateOfValue), using: coeffects)
 
                 let expectedChange = Change(
                   initialState!,
@@ -127,6 +134,11 @@ final class ModelSpec: QuickSpec {
                     $0.stateA.stringValue = $0.stateA.stringValue.copy(with: "bar")
                   }
                 )
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedChange = await receiver.change
+
                 expect(receivedChange).toNot(beNil())
                 expect(receivedChange) == expectedChange
               }
@@ -135,58 +147,61 @@ final class ModelSpec: QuickSpec {
 
           context("inner key path") {
             context("initially observed value") {
-              var receivedValue: FakeStateA?
-              var observer: PropertyPathObserver<FakeState, FakeStateA>!
-
-              beforeEach {
-                receivedValue = nil
-                observer = .observer(
-                  for: \FakeState.stateA,
-                  initiallyObservedValue: { receivedValue = $0 },
-                  change: { _ in }
-                )
-              }
-
               it("executes observer callback upon adding of observer") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\FakeState.stateA, FakeStateA.self)
+
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedValue = await receiver.value
 
                 expect(receivedValue).toNot(beNil())
                 expect(receivedValue) == initialState.stateA
               }
 
               it("does not execute observer callback upon state change") {
-                model.add(observer)
-                receivedValue = nil
+                let (receiver, observer) = receiverAndObserver(\FakeState.stateA, FakeStateA.self)
 
-                model.handle(.a(.updateOfValue), using: coeffects)
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                await receiver.setValue(nil)
+
+                await model.handle(.a(.updateOfValue), using: coeffects)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedValue = await receiver.value
 
                 expect(receivedValue).to(beNil())
               }
             }
 
             context("change") {
-              var receivedChange: Change<FakeStateA>?
-              var observer: PropertyPathObserver<FakeState, FakeStateA>!
-
-              beforeEach {
-                receivedChange = nil
-                observer = .observer(
-                  for: \FakeState.stateA,
-                  initiallyObservedValue: { _ in },
-                  change: { change in receivedChange = change }
-                )
-              }
-
               it("does not execute observer callback upon adding of observer") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\FakeState.stateA, FakeStateA.self)
+
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedChange = await receiver.change
 
                 expect(receivedChange).to(beNil())
               }
 
               it("executes observer callback upon state change") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\FakeState.stateA, FakeStateA.self)
 
-                model.handle(.a(.updateOfValue), using: coeffects)
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                await model.handle(.a(.updateOfValue), using: coeffects)
+
+                try? await Task.sleep(for: .seconds(0.01))
 
                 let expectedChange = Change(
                   initialState.stateA,
@@ -194,6 +209,9 @@ final class ModelSpec: QuickSpec {
                     $0.stringValue = $0.stringValue.copy(with: "bar")
                   }
                 )
+
+                let receivedChange = await receiver.change
+
                 expect(receivedChange).toNot(beNil())
                 expect(receivedChange) == expectedChange
               }
@@ -228,21 +246,23 @@ final class ModelSpec: QuickSpec {
           let observer = ModelObserver(for: \TestState.value,
                                        initiallyObservedValue: { _ in },
                                        change: { _ in })
-          model.add(observer)
+          await model.add(observer)
         }
 
         it("holds observer weakly") {
           weak var weakObserver: ModelObserver<TestState>?
 
-          autoreleasepool {
-            let observer = ModelObserver(for: \TestState.value,
-                                         initiallyObservedValue: { _ in },
-                                         change: { _ in })
-            weakObserver = observer
-            model.add(observer)
+          var observer: ModelObserver? = ModelObserver(
+            for: \TestState.value,
+            initiallyObservedValue: { _ in },
+            change: { _ in }
+          )
+          weakObserver = observer
+          await model.add(observer!)
 
-            expect(weakObserver).toNot(beNil())
-          }
+          expect(weakObserver).toNot(beNil())
+
+          observer = nil
 
           expect(weakObserver).to(beNil())
         }
@@ -250,54 +270,61 @@ final class ModelSpec: QuickSpec {
         context("execution") {
           context("root property path") {
             context("initially observed value") {
-              var receivedValue: TestState?
-              var observer: PropertyPathObserver<TestState, TestState>!
-
-              beforeEach {
-                receivedValue = nil
-                observer = .observer(for: \TestState.self,
-                                     initiallyObservedValue: { receivedValue = $0 },
-                                     change: { _ in })
-              }
-
               it("executes observer callback upon adding of observer") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\TestState.self, TestState.self)
+
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedValue = await receiver.value
 
                 expect(receivedValue).toNot(beNil())
                 expect(receivedValue) == initialState
               }
 
               it("does not execute observer callback upon state change") {
-                model.add(observer)
-                receivedValue = nil
+                let (receiver, observer) = receiverAndObserver(\TestState.self, TestState.self)
 
-                model.handle(.a(.updateOfValue), using: coeffects)
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                await receiver.setValue(nil)
+
+                await model.handle(.a(.updateOfValue), using: coeffects)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedValue = await receiver.value
 
                 expect(receivedValue).to(beNil())
               }
             }
 
             context("change") {
-              var receivedChange: Change<TestState>?
-              var observer: PropertyPathObserver<TestState, TestState>!
-
-              beforeEach {
-                receivedChange = nil
-                observer = .observer(for: \TestState.self,
-                                     initiallyObservedValue: { _ in },
-                                     change: { change in receivedChange = change })
-              }
-
               it("does not execute observer callback upon adding of observer") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\TestState.self, TestState.self)
+
+                await model.add(observer)
+
+                let receivedChange = await receiver.change
 
                 expect(receivedChange).to(beNil())
               }
 
               it("executes observer callback upon state change") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\TestState.self, TestState.self)
 
-                model.handle(.a(.updateOfValue), using: coeffects)
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                await model.handle(.a(.updateOfValue), using: coeffects)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedChange = await receiver.change
 
                 let expectedChange = Change<TestState>(
                   initialState!,
@@ -313,58 +340,63 @@ final class ModelSpec: QuickSpec {
 
           context("inner property path, non-null change") {
             context("initially observed value") {
-              var receivedValue: Int?
-              var observer: PropertyPathObserver<TestState, Int>!
-
-              beforeEach {
-                receivedValue = nil
-                observer = .observer(
-                  for: \TestState.value,
-                  initiallyObservedValue: { receivedValue = $0 },
-                  change: { _ in }
-                )
-              }
-
               it("executes observer callback upon adding of observer") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\TestState.value, Int.self)
+
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedValue = await receiver.value
 
                 expect(receivedValue).toNot(beNil())
                 expect(receivedValue) == 0
               }
 
               it("does not execute observer callback upon state change") {
-                model.add(observer)
-                receivedValue = nil
+                let (receiver, observer) = receiverAndObserver(\TestState.value, Int.self)
 
-                model.handle(.a(.updateOfValue), using: coeffects)
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                await receiver.setValue(nil)
+
+                await model.handle(.a(.updateOfValue), using: coeffects)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedValue = await receiver.value
 
                 expect(receivedValue).to(beNil())
               }
             }
 
             context("change") {
-              var receivedChange: Change<Int>?
-              var observer: PropertyPathObserver<TestState, Int>!
-
-              beforeEach {
-                receivedChange = nil
-                observer = .observer(
-                  for: \TestState.value,
-                  initiallyObservedValue: { _ in },
-                  change: { change in receivedChange = change }
-                )
-              }
-
               it("does not execute observer callback upon adding of observer") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\TestState.value, Int.self)
+
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedChange = await receiver.change
 
                 expect(receivedChange).to(beNil())
               }
 
               it("executes observer callback upon state change") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\TestState.value, Int.self)
 
-                model.handle(.a(.updateOfValue), using: coeffects)
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                await model.handle(.a(.updateOfValue), using: coeffects)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedChange = await receiver.change
 
                 let expectedChange = Change<Int>(
                   0,
@@ -378,57 +410,62 @@ final class ModelSpec: QuickSpec {
 
           context("inner property path, null change") {
             context("initially observed value") {
-              var receivedValue: String!
-              var observer: PropertyPathObserver<TestState, String>!
-
-              beforeEach {
-                observer = .observer(
-                  for: \TestState.anotherValue,
-                  initiallyObservedValue: { receivedValue = $0 },
-                  change: { _ in }
-                )
-              }
-
               it("executes observer callback upon adding of observer") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\TestState.anotherValue, String.self)
+
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedValue = await receiver.value
 
                 expect(receivedValue) == ""
               }
 
               it("does not execute observer callback upon state change") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\TestState.anotherValue, String.self)
 
-                model.handle(.a(.updateOfValue), using: coeffects)
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                await model.handle(.a(.updateOfValue), using: coeffects)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedValue = await receiver.value
 
                 expect(receivedValue) == ""
               }
             }
 
             context("change") {
-              var receivedChange: Change<String>?
-              var observer: PropertyPathObserver<TestState, String>!
-
-              beforeEach {
-                receivedChange = nil
-                observer = .observer(
-                  for: \TestState.anotherValue,
-                  initiallyObservedValue: { _ in },
-                  change: { change in receivedChange = change }
-                )
-              }
-
               it("does not execute observer callback upon adding of observer") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\TestState.anotherValue, String.self)
+
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                let receivedChange = await receiver.change
 
                 expect(receivedChange).to(beNil())
               }
 
               it("executes observer callback upon state change") {
-                model.add(observer)
+                let (receiver, observer) = receiverAndObserver(\TestState.anotherValue, String.self)
 
-                model.handle(.b(.updateOfValue), using: coeffects)
+                await model.add(observer)
+
+                try? await Task.sleep(for: .seconds(0.01))
+
+                await model.handle(.b(.updateOfValue), using: coeffects)
+
+                try? await Task.sleep(for: .seconds(0.01))
 
                 let expectedChange = Change("", "foo")
+
+                let receivedChange = await receiver.change
 
                 expect(receivedChange).toNot(beNil())
                 expect(receivedChange) == expectedChange
@@ -440,3 +477,40 @@ final class ModelSpec: QuickSpec {
     }
   }
 }
+
+private func receiverAndObserver<State: Equatable & Sendable, T: Equatable & Sendable>(
+  _ keyPath: KeyPath<State, T>,
+  _ type: T.Type
+) -> (UpdateReceiver<T>, PropertyPathObserver<State, T>) {
+  let receiver = UpdateReceiver<T>()
+  let observer: PropertyPathObserver<State, T> = .observer(
+    for: keyPath,
+    initiallyObservedValue: { state in
+      Task {
+        await receiver.setValue(state)
+      }
+    },
+    change: { change in
+      Task {
+        await receiver.setChange(change)
+      }
+    }
+  )
+
+  return (receiver, observer)
+}
+
+private actor UpdateReceiver<T: Equatable & Sendable> {
+  private(set) var value: T?
+
+  private(set) var change: Change<T>?
+
+  func setValue(_ value: T?) {
+    self.value = value
+  }
+
+  func setChange(_ change: Change<T>?) {
+    self.change = change
+  }
+}
+

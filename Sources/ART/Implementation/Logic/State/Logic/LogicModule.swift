@@ -9,7 +9,7 @@ public actor LogicModule<
   State: StateProtocol,
   Request: RequestProtocol,
   SideEffectPerformer: SideEffectPerformerProtocol
->: ExecutableExecutor {
+>: ExecutableExecutor, Sendable {
   public typealias SideEffect = SideEffectPerformer.SideEffect
   public typealias SideEffectError = SideEffectPerformer.SideEffectError
   public typealias Coeffects = SideEffectPerformer.Coeffects
@@ -28,7 +28,7 @@ public actor LogicModule<
   private let observerReferences: [Any]
 
   /// Objects providing co-effect functionality.
-  public nonisolated let coeffects: Coeffects
+  public let coeffects: Coeffects
 
   /// Initializes with the given `model` and the given `staticObservers` tuple consisting of a model
   /// observer which is weakly held by the initialized instance and a type-erased reference to an
@@ -46,21 +46,21 @@ public actor LogicModule<
     sideEffectPerformer: SideEffectPerformer,
     coeffects: Coeffects,
     staticObservers: [(ModelObserver<State>, Any)] = []
-  ) {
+  ) async {
     self.model = model
     self.sideEffectPerformer = sideEffectPerformer
     self.coeffects = coeffects
     self.observerReferences = staticObservers.map(\.1)
 
-    staticObservers.map(\.0).forEach {
-      model.add($0)
+    for staticObserver in staticObservers {
+      await model.add(staticObserver.0)
     }
   }
 
   /// Sequentially executes the given `executables`.
   @discardableResult
   public func execute(_ executable: Executable) async -> CompletionIndication {
-    self.model.handleInSingleTransaction(executable.initialRequests, using: self.coeffects)
+    await self.model.handleInSingleTransaction(executable.initialRequests, using: self.coeffects)
 
     let result = await self.perform(executable.sideEffect)
 
@@ -73,27 +73,27 @@ public actor LogicModule<
         fatalError("Error: \(error)")
       }
 
-      self.model.handleInSingleTransaction(requests, using: self.coeffects)
-    
+      await self.model.handleInSingleTransaction(requests, using: self.coeffects)
+
     case let .debugCrashUponFailure(requests):
       guard let error = result.error else {
-        self.model.handleInSingleTransaction(requiredLet(requests[.success], "Must exist"), using: self.coeffects)
+        await self.model.handleInSingleTransaction(requiredLet(requests[.success], "Must exist"), using: self.coeffects)
         return result
       }
 
       debugCrash("Error: \(error)")
 
-      self.model.handleInSingleTransaction(requiredLet(requests[.failure], "Must exist"), using: self.coeffects)
+      await self.model.handleInSingleTransaction(requiredLet(requests[.failure], "Must exist"), using: self.coeffects)
 
     case let .requests(requests):
       guard let error = result.error else {
-        self.model.handleInSingleTransaction(requiredLet(requests[.success], "Must exist"), using: self.coeffects)
+        await self.model.handleInSingleTransaction(requiredLet(requests[.success], "Must exist"), using: self.coeffects)
         return result
       }
 
       debugCrash("Error: \(error)")
 
-      self.model.handleInSingleTransaction(requiredLet(requests[.failure], "Must exist"), using: self.coeffects)
+      await self.model.handleInSingleTransaction(requiredLet(requests[.failure], "Must exist"), using: self.coeffects)
     }
 
     return result
@@ -155,8 +155,8 @@ public actor LogicModule<
     self.performSuccessfully(.only(sideEffect))
   }
 
-  public nonisolated func handleInSingleTransaction(_ requests: [Request]) {
-    self.model.handleInSingleTransaction(requests, using: self.coeffects)
+  public func handleInSingleTransaction(_ requests: [Request]) async {
+    await self.model.handleInSingleTransaction(requests, using: self.coeffects)
   }
 
   /// Adds the given `observer` to the receiver. The `observer` is immediately informed about the
@@ -164,7 +164,7 @@ public actor LogicModule<
   /// `keyPath` of the `observer`, the `observer` is informed about the change.
   ///
   /// - important: The given `observer` is held weakly by the receiver.
-  public func add(_ observer: ModelObserver<State>) {
-    self.model.add(observer)
+  public func add(_ observer: ModelObserver<State>) async {
+    await self.model.add(observer)
   }
 }

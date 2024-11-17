@@ -7,8 +7,8 @@ import SwiftUI
 ///
 /// Inspired by `IfLetStore` of `The Composable Architecture`.
 internal struct StaticConditionalView<
-  Model: Equatable,
-  Event: Hashable,
+  Model: Equatable & Sendable,
+  Event: Hashable & Sendable,
   Coeffects: CoeffectsProtocol,
   Content: View
 >: View {

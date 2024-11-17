@@ -49,8 +49,6 @@ struct FakeModelView: View, ModelView {
 
 final class ModelViewSpec: AsyncSpec {
   override class func spec() {
-    var view: FakeModelView!
-
     context("model observations") {
       typealias TestModel = Model<FakeState, FakeRequest, TestCoeffects>
 
@@ -74,11 +72,13 @@ final class ModelViewSpec: AsyncSpec {
           }
         )
 
-        (view, observers) = await FakeModelView.instance(
+        let result = await FakeModelView.instance(
           observing: \FakeState.stateB,
           of: model,
           using: coeffects
         ) { _ in }
+
+        observers = result.observers
       }
 
       it("creates observers") {
@@ -86,22 +86,19 @@ final class ModelViewSpec: AsyncSpec {
       }
 
       it("holds observers weakly") {
-        weak var weaklyHeldObserver: ModelViewObservers?
-
-        var stronglyHeldObserver: ModelViewObservers?
-        (view, stronglyHeldObserver) = await FakeModelView.instance(
+        var stronglyHeldResult: ModelViewCreationResult? = await FakeModelView.instance(
           observing: \FakeState.stateB,
           of: model,
           using: coeffects
         ) { _ in }
-        weaklyHeldObserver = stronglyHeldObserver
 
-        expect(view).toNot(beNil())
+        weak var weaklyHeldObserver: ModelViewObservers?
+        weaklyHeldObserver = stronglyHeldResult!.observers
+
         expect(weaklyHeldObserver).toNot(beNil())
 
-        stronglyHeldObserver = nil
+        stronglyHeldResult = nil
 
-        expect(view).toNot(beNil())
         expect(weaklyHeldObserver).to(beNil())
       }
     }

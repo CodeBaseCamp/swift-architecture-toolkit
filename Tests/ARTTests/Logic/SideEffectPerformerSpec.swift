@@ -24,17 +24,12 @@ private typealias TestSideEffectPerformer = SideEffectPerformer<
 private typealias TestSideEffectCompletionIndication =
   CompletionIndication<CompositeError<SideEffectExecutionError<TestError>>>
 
-private final class TestObject {
+private actor TestObject {
   var receivedSideEffects = [TestSideEffect]()
   var successOrFailureMapping = [(TestSideEffect, TestError)]()
-  var isRunningOnMainThread = [Bool]()
 
   func receivedSideEffects() async -> [TestSideEffect] {
     return self.receivedSideEffects
-  }
-
-  func isRunningOnMainThread() async -> [Bool] {
-    return self.isRunningOnMainThread
   }
 
   func appendError(_ sideEffectAndError: (TestSideEffect, TestError)) async {
@@ -44,9 +39,8 @@ private final class TestObject {
   func sideEffectClosure(
     _ sideEffect: TestSideEffect,
     using _: TestCoeffects
-  ) -> CompletionIndication<CompositeError<SideEffectExecutionError<TestError>>> {
+  ) async -> CompletionIndication<CompositeError<SideEffectExecutionError<TestError>>> {
     self.receivedSideEffects.append(sideEffect)
-    self.isRunningOnMainThread.append(Thread.isMainThread)
 
     var completionIndication: TestSideEffectCompletionIndication
     if let error = successOrFailureMapping.first(where: { $0.0 == sideEffect }) {

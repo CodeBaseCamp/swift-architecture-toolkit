@@ -8,9 +8,10 @@ import SwiftUI
 /// `NonOptionalContent1`, respectively.
 ///
 /// Inspired by `IfLetStore` of `The Composable Architecture`.
+@MainActor
 public func ConditionalView<
-  Model: Equatable,
-  Event: Hashable,
+  Model: Equatable & Sendable,
+  Event: Hashable & Sendable,
   Coeffects: CoeffectsProtocol,
   NonOptionalContent0: View,
   NonOptionalContent1: View
@@ -24,9 +25,10 @@ public func ConditionalView<
   return NonStaticConditionalView(context, then: nonOptionalContent0, else: nonOptionalContent1)
 }
 
+@MainActor
 public func ConditionalView<
-  Model: Equatable,
-  Event: Hashable,
+  Model: Equatable & Sendable,
+  Event: Hashable & Sendable,
   Coeffects: CoeffectsProtocol,
   NonOptionalContent: View
 >(
@@ -44,9 +46,10 @@ public func ConditionalView<
 /// `NonOptionalContent1`, respectively.
 ///
 /// Inspired by `IfLetStore` of `The Composable Architecture`.
+@MainActor
 public func ConditionalView<
-  Model: Equatable,
-  Event: Hashable,
+  Model: Equatable & Sendable,
+  Event: Hashable & Sendable,
   Coeffects: CoeffectsProtocol,
   NonOptionalContent0: View,
   NonOptionalContent1: View
@@ -60,9 +63,10 @@ public func ConditionalView<
   return StaticConditionalView(context, then: nonOptionalContent0, else: nonOptionalContent1)
 }
 
+@MainActor
 public func ConditionalView<
-  Model: Equatable,
-  Event: Hashable,
+  Model: Equatable & Sendable,
+  Event: Hashable & Sendable,
   Coeffects: CoeffectsProtocol,
   NonOptionalContent: View
 >(
@@ -77,7 +81,7 @@ public func ConditionalView<
 extension ModelView {
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     OtherEvent: Hashable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
@@ -97,7 +101,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
   >(
@@ -115,7 +119,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
   >(
@@ -132,7 +136,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
   >(
@@ -150,7 +154,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     OtherEvent: Hashable,
     NonOptionalContent: View
   >(
@@ -164,7 +168,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent: View
   >(
     _ modelTransformation: @escaping (Model) -> OtherModel?,
@@ -194,7 +198,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent: View
   >(
     _ modelTransformation: @escaping (Model) -> OtherModel?,
@@ -205,7 +209,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent: View
   >(
     _ modelTransformation: @escaping (Model) -> OtherModel?,
@@ -220,7 +224,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     OtherEvent: Hashable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
@@ -241,7 +245,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
   >(
@@ -260,7 +264,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
   >(
@@ -279,7 +283,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     OtherEvent: Hashable,
     NonOptionalContent: View
   >(
@@ -293,7 +297,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent: View
   >(
     _ modelTransformation: @escaping (Model) -> OtherModel?,
@@ -305,7 +309,7 @@ extension ModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent: View
   >(
     _ modelTransformation: @escaping (Model) -> OtherModel?,
@@ -319,7 +323,7 @@ extension ModelView {
 extension StaticModelView {
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     OtherEvent: Hashable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
@@ -339,7 +343,7 @@ extension StaticModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
   >(
@@ -357,7 +361,7 @@ extension StaticModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
   >(
@@ -374,7 +378,7 @@ extension StaticModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent0: View,
     NonOptionalContent1: View
   >(
@@ -392,7 +396,7 @@ extension StaticModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     OtherEvent: Hashable,
     NonOptionalContent: View
   >(
@@ -406,7 +410,7 @@ extension StaticModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent: View
   >(
     _ modelTransformation: @escaping (Model) -> OtherModel?,
@@ -418,7 +422,7 @@ extension StaticModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent: View
   >(
     _ modelTransformation: @escaping (Model) -> OtherModel?,
@@ -429,7 +433,7 @@ extension StaticModelView {
 
   @MainActor
   public func IfLet<
-    OtherModel: Equatable,
+    OtherModel: Equatable & Sendable,
     NonOptionalContent: View
   >(
     _ modelTransformation: @escaping (Model) -> OtherModel?,

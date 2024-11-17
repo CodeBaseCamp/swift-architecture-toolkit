@@ -32,11 +32,11 @@ public actor SideEffectPerformer<
   public typealias CompositeSideEffect = ART.CompositeSideEffect<SideEffect, SideEffectError>
   public typealias CompletionIndication =
     ART.CompletionIndication<CompositeError<SideEffectExecutionError<SideEffectError>>>
-  public typealias SideEffectClosure = (SideEffect, Coeffects) async -> CompletionIndication
+  public typealias SideEffectClosure = @Sendable (SideEffect, Coeffects) async -> CompletionIndication
 
   private let sideEffectClosure: SideEffectClosure
 
-  public init(sideEffectClosure: @escaping SideEffectClosure) {
+  public init(sideEffectClosure: @escaping @Sendable SideEffectClosure) {
     self.sideEffectClosure = sideEffectClosure
   }
 
@@ -120,9 +120,13 @@ public actor SideEffectPerformer<
             }
           }
 
-          let errors: [CompositeError<SideEffectExecutionError<SideEffectError>>] = await taskGroup
-            .compactMap { $0.error }
-            .reduce([]) { $0 + [$1] }
+          var errors: [CompositeError<SideEffectExecutionError<SideEffectError>>] = []
+
+          for _ in 0..<sideEffects.count {
+            if let error = await taskGroup.next()?.error {
+              errors.append(error)
+            }
+          }
 
           guard !errors.isEmpty else {
             return .success

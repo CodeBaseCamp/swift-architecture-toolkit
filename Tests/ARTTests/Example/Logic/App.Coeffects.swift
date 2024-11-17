@@ -3,8 +3,8 @@
 import ART
 
 extension App {
-  class Coeffects: CoeffectsProtocol {
-    private(set) var `default`: DefaultCoeffectsProtocol
+  final class Coeffects: CoeffectsProtocol {
+    let `default`: DefaultCoeffectsProtocol
 
     init() {
       self.default = DefaultCoeffects()

@@ -3,33 +3,33 @@
 import Foundation
 
 /// Object constituting the default coeffects.
-public class DefaultCoeffects: DefaultCoeffectsProtocol {
+final public class DefaultCoeffects: DefaultCoeffectsProtocol {
   // File System functionality.
 
-  private let temporaryDirectoryClosure: () -> URL
+  private let temporaryDirectoryClosure: @Sendable () -> URL
 
-  private let documentDirectoryClosure: () -> URL
+  private let documentDirectoryClosure: @Sendable () -> URL
 
-  private let localeClosure: () -> Locale
+  private let localeClosure: @Sendable () -> Locale
 
-  private let dateClosure: () -> Date
+  private let dateClosure: @Sendable () -> Date
 
-  private let uuidClosure: () -> UUID
+  private let uuidClosure: @Sendable () -> UUID
 
   /// Initializes with the given values.
   public init(
-    temporaryDirectory: @escaping () -> URL = { URL(fileURLWithPath: NSTemporaryDirectory()) },
-    documentDirectoryClosure: @escaping () -> URL = {
+    temporaryDirectory: @escaping @Sendable () -> URL = { URL(fileURLWithPath: NSTemporaryDirectory()) },
+    documentDirectoryClosure: @escaping @Sendable () -> URL = {
       let url = try? FileManager.default.url(for: .documentDirectory,
                                              in: .userDomainMask,
                                              appropriateFor: nil,
                                              create: false)
       return requiredLet(url, "Document directory must exist")
     },
-    localeClosure: @escaping () -> Locale = { Locale.current },
+    localeClosure: @escaping @Sendable () -> Locale = { Locale.current },
 
-    dateClosure: @escaping () -> Date = { Date() },
-    uuidClosure: @escaping () -> UUID = { UUID() }
+    dateClosure: @escaping @Sendable () -> Date = { Date() },
+    uuidClosure: @escaping @Sendable () -> UUID = { UUID() }
   ) {
     self.temporaryDirectoryClosure = temporaryDirectory
     self.documentDirectoryClosure = documentDirectoryClosure

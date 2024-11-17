@@ -5,10 +5,10 @@ import SwiftUI
 /// Protocol to be implemented by views which can be updated by a corresponding view model.
 public protocol ModelView: View {
   /// Type of the model of this instance.
-  associatedtype Model: Equatable
+  associatedtype Model: Equatable & Sendable
 
   /// Type of the events this instance can send.
-  associatedtype Event: Hashable
+  associatedtype Event: Hashable & Sendable
 
   /// Coeffects.
   associatedtype Coeffects: CoeffectsProtocol
@@ -46,7 +46,7 @@ public extension ModelView {
   }
 
   @MainActor
-  func contextIgnoringEvents<OtherModel: Equatable, OtherEvent: Equatable>(
+  func contextIgnoringEvents<OtherModel: Equatable & Sendable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> ViewContext<OtherModel, OtherEvent, Coeffects> {
     self.context.contextIgnoringEvents(modelTransformation)

@@ -4,15 +4,13 @@ import Foundation
 
 /// Object maintaining a mutable instance of `State`. The `State` instance can be mutated by
 /// invoking the `handleInSingleTransaction` method with appropriate `Request` instances.
-class Store<
+actor Store<
   State: StateProtocol,
   Request: RequestProtocol,
   Coeffects: CoeffectsProtocol
 >: RequestHandler {
   /// Closure called upon changes of the state.
-  ///
-  /// @important Is guaranteed to be called on the main thread.
-  var subscriptionFunction: (Change<State>) -> Void = { _ in }
+  private var subscriptionFunction: @Sendable (Change<State>) -> Void = { _ in }
 
   /// Current state.
   var state: State { self.change.current }
@@ -33,39 +31,48 @@ class Store<
     self.reduce = reduce
   }
 
+  func setSubscriptionFunction(_ closure: @escaping @Sendable (Change<State>) -> Void) {
+    self.subscriptionFunction = closure
+  }
+
   /// Handles the given `requests` by updating the `state` of this instance accordingly, using the
   /// given `coeffects`.
-  func handleInSingleTransaction(_ requests: [Request], using coeffects: Coeffects) {
-    Thread.synchronouslyPerformOnMainThread {
-      let stateBeforeChange = self.state
-      var stateAfterChange = stateBeforeChange
-
-      self.reduce(&stateAfterChange, requests, coeffects)
-
-      let potentialChange = PotentialChange(stateBeforeChange, stateAfterChange)
-
-      guard let change = Change.safeInstance(from: potentialChange) else {
-        if requests.mustResultInChange() {
-          debugPrint("No state change for request <\(requests.humanReadableDescription)>")
-        }
-        return
-      }
-
-      self.change = potentialChange
-      self.subscriptionFunction(change)
+  func handleInSingleTransaction(_ requests: [Request], using coeffects: Coeffects) async {
+    guard !requests.isEmpty else {
+      return
     }
+
+    let stateBeforeChange = self.state
+    var stateAfterChange = stateBeforeChange
+
+    self.reduce(&stateAfterChange, requests, coeffects)
+
+    let potentialChange = PotentialChange(stateBeforeChange, stateAfterChange)
+
+    guard let change = Change.safeInstance(from: potentialChange) else {
+      if requests.mustResultInChange() {
+        debugPrint("No state change for request <\(requests.humanReadableDescription)>")
+      }
+      return
+    }
+
+    self.change = potentialChange
+
+    self.subscriptionFunction(change)
   }
 }
 
 // MARK: - Store Extensions
 
 extension Store {
-  func save(in userDefaults: UserDefaults, forKey key: String) throws {
+  func save(in userDefaults: SendableUserDefaults, forKey key: String) throws {
     try userDefaults.set(self.state.data(), forKey: key)
   }
 
-  func load(from userDefaults: UserDefaults, forKey key: String) throws {
-    guard let data = userDefaults.object(forKey: key) as? Data else { return }
+  func load(from userDefaults: SendableUserDefaults, forKey key: String) throws {
+    guard let data: Data = userDefaults.object(forKey: key) else {
+      return
+    }
 
     let loadedState = try State.instance(from: data)
     let potentialChange = PotentialChange(self.state, loadedState)
@@ -75,6 +82,7 @@ extension Store {
     }
 
     self.change = potentialChange
+
     self.subscriptionFunction(change)
   }
 }

@@ -4,30 +4,30 @@ import Foundation
 
 /// Object for observing the value of a `State` of a `ModelProtocol` instance, following a
 /// specific property path.
-public final class ModelObserver<R: Equatable> {
+public final class ModelObserver<R: Equatable & Sendable>: Sendable {
   fileprivate let propertyPath: PartialPropertyPath<R>
-  fileprivate let handleInitiallyObservedState: (R) -> Void
-  fileprivate let handleStateChange: (Change<R>) -> Void
+  fileprivate let handleInitiallyObservedState: @Sendable (R) -> Void
+  fileprivate let handleStateChange: @Sendable (Change<R>) -> Void
 
   public convenience init<T: Equatable>(
     for keyPath: KeyPath<R, T>,
-    initiallyObservedValue: @escaping (T) -> Void,
-    change changeClosure: @escaping (Change<T>) -> Void
+    initiallyObservedValue: @escaping @Sendable (T) -> Void,
+    change changeClosure: @escaping @Sendable (Change<T>) -> Void
   ) {
     self.init(
       for: PropertyPath(keyPath),
       initiallyObservedValue: {
         guard let value = $0 else {
-          fatalError("Optional value received for key path \(keyPath) must never be `nil`")
+          fatalError("Optional value received for key path must never be `nil`")
         }
 
         initiallyObservedValue(value)
       }, change: { change in
         guard let previousValue = change.previous else {
-          fatalError("Previous value received for key path \(keyPath) must never be `nil`")
+          fatalError("Previous value received for key path must never be `nil`")
         }
         guard let currentValue = change.current else {
-          fatalError("Current value received for key path \(keyPath) must never be `nil`")
+          fatalError("Current value received for key path must never be `nil`")
         }
 
         changeClosure(Change(previousValue, currentValue))
@@ -37,8 +37,8 @@ public final class ModelObserver<R: Equatable> {
 
   public convenience init(
     for propertyPath: PropertyPath<R, Void>,
-    initiallyObservedValue: @escaping (Bool) -> Void,
-    change changeClosure: @escaping (Change<Bool>) -> Void
+    initiallyObservedValue: @escaping @Sendable (Bool) -> Void,
+    change changeClosure: @escaping @Sendable (Change<Bool>) -> Void
   ) {
     self.init(
       for: propertyPath,
@@ -51,8 +51,8 @@ public final class ModelObserver<R: Equatable> {
 
   public convenience init<T: Equatable>(
     for propertyPath: PropertyPath<R, T>,
-    initiallyObservedValue: @escaping (T?) -> Void,
-    change changeClosure: @escaping (Change<T?>) -> Void
+    initiallyObservedValue: @escaping @Sendable (T?) -> Void,
+    change changeClosure: @escaping @Sendable (Change<T?>) -> Void
   ) {
     self.init(
       for: propertyPath,
@@ -65,9 +65,9 @@ public final class ModelObserver<R: Equatable> {
 
   private init<T: Equatable, S>(
     for propertyPath: PropertyPath<R, S>,
-    initiallyObservedValue: @escaping (T) -> Void,
-    change changeClosure: @escaping (Change<T>) -> Void,
-    t: @escaping (S?) -> T
+    initiallyObservedValue: @escaping @Sendable (T) -> Void,
+    change changeClosure: @escaping @Sendable (Change<T>) -> Void,
+    t: @escaping @Sendable (S?) -> T
   ) {
     self.propertyPath = propertyPath
     self.handleInitiallyObservedState = {
@@ -91,7 +91,7 @@ public final class ModelObserver<R: Equatable> {
 /// Object maintaining mutable, observable state. The state can be mutated using so-called requests.
 /// `ModelObserver` instances can be be added to the model in order to observe changes at
 /// specific key paths.
-public class Model<
+public actor Model<
   State: StateProtocol,
   Request: RequestProtocol,
   Coeffects: CoeffectsProtocol
@@ -102,59 +102,56 @@ public class Model<
   /// Internally used store.
   private let store: Store<State, Request, Coeffects>
 
-  /// Internally used lock.
-  private let lock = NSRecursiveLock()
-
-  /// Current state.
-  public var state: State {
-    return self.store.state
+  /// Returns the current state.
+  public func state() async -> State {
+    return await self.store.state
   }
 
   public init(
     state: State,
-    reduce: @escaping (inout State, [Request], Coeffects) -> Void
+    reduce: @escaping @Sendable (inout State, [Request], Coeffects) -> Void
   ) {
     self.store = Store(state: state, reduce: reduce)
-    self.store.subscriptionFunction = self.handleStateChange
   }
 
-  public func handleInSingleTransaction(_ requests: [Request],
-                                        using coeffects: Coeffects) {
-    store.handleInSingleTransaction(requests, using: coeffects)
+  public func handleInSingleTransaction(_ requests: [Request], using coeffects: Coeffects) async {
+    await store.handleInSingleTransaction(requests, using: coeffects)
   }
 
   /// See homonymous method of `ModelProtocol`.
-  public func add(_ observer: ModelObserver<State>) {
-    self.lock.executeWhileLocked {
-      self.observers.append(WeakContainer(containing: observer))
-    }
+  public func add(_ observer: ModelObserver<State>) async {
+    self.observers.append(WeakContainer(containing: observer))
 
-    observer.handleInitiallyObservedState(self.store.state)
+    await self.updateSubscriptionFunction()
+
+    observer.handleInitiallyObservedState(await self.store.state)
   }
 
-  private func handleStateChange(_ change: Change<State>) {
-    self.remainingObservers.forEach {
-      $0.handleStateChange(change)
+  private func updateSubscriptionFunction() async {
+    let remainingObservers = self.remainingObservers
+
+    await self.store.setSubscriptionFunction { change in
+      remainingObservers.forEach {
+        $0.weaklyHeldInstance?.handleStateChange(change)
+      }
     }
   }
 
-  private var remainingObservers: [ModelObserver<State>] {
-    var remainingObservers = [ModelObserver<State>]()
+  private var remainingObservers: [WeakContainer<ModelObserver<State>>] {
+    var remainingObservers = [WeakContainer<ModelObserver<State>>]()
     var containersToRemove = [WeakContainer<ModelObserver<State>>]()
 
-    self.lock.executeWhileLocked {
-      self.observers.forEach { container in
-        guard let observer = container.weaklyHeldInstance else {
-          containersToRemove.append(container)
-          return
-        }
-
-        remainingObservers.append(observer)
+    self.observers.forEach { container in
+      guard container.weaklyHeldInstance != nil else {
+        containersToRemove.append(container)
+        return
       }
 
-      containersToRemove.forEach { containerToRemove in
-        self.observers.removeAll(where: { $0 === containerToRemove })
-      }
+      remainingObservers.append(container)
+    }
+
+    containersToRemove.forEach { containerToRemove in
+      self.observers.removeAll(where: { $0 === containerToRemove })
     }
 
     return remainingObservers
@@ -162,12 +159,12 @@ public class Model<
 }
 
 public extension Model {
-  func save(in userDefaults: UserDefaults, forKey key: String) throws {
-    try store.save(in: userDefaults, forKey: key)
+  func save(in userDefaults: SendableUserDefaults, forKey key: String) async throws {
+    try await store.save(in: userDefaults, forKey: key)
   }
 
-  func load(from userDefaults: UserDefaults, forKey key: String) throws {
-    try store.load(from: userDefaults, forKey: key)
+  func load(from userDefaults: SendableUserDefaults, forKey key: String) async throws {
+    try await store.load(from: userDefaults, forKey: key)
   }
 }
 
@@ -175,8 +172,8 @@ public extension Model {
 /// state. `ModelObserver` instances can be be added to the object in order to observe changes at
 /// specific key paths.
 public final class LensModel<
-  State: Equatable, ObservedModel: ModelProtocol, ObservedProperty: Equatable
-> {
+  State: Equatable & Sendable, ObservedModel: ModelProtocol, ObservedProperty: Equatable & Sendable
+>: @unchecked Sendable {
   /// Closure returning an optional change of `State`, given a current `State` and a change of the
   /// `ObservedProperty`. Returns `nil` if there is no change for the given parameters.
   public typealias ChangeConversionClosure =
@@ -241,9 +238,9 @@ public final class LensModel<
   /// - important The returned observer is held weakly by this instance. It is the responsibility of
   ///             the caller to hold the returned observer strongly as long as required.
   public func observer(
-    initiallyObservedValue: @escaping (State) -> Void,
-    change changeClosure: @escaping (Change<State>) -> Void
-  ) -> SimpleValueObserver<State> {
+    initiallyObservedValue: @escaping @Sendable (State) -> Void,
+    change changeClosure: @escaping @Sendable (Change<State>) -> Void
+  ) async -> SimpleValueObserver<State> {
     let observer = SimpleValueObserver<State>(
       initiallyObservedValue: {
         guard let value = $0 else {
@@ -264,7 +261,7 @@ public final class LensModel<
       }
     )
 
-    self.add(observer)
+    await self.add(observer)
 
     return observer
   }
@@ -273,12 +270,12 @@ public final class LensModel<
   ///
   /// - important The model provided upon creation of this instance must still exist when the
   ///             callback methods of the given `observer` are called.
-  public func add(_ observer: SimpleValueObserver<State>) {
+  public func add(_ observer: SimpleValueObserver<State>) async {
     guard let model = self.model else {
       fatalError("Added observer after model deallocation")
     }
 
-    weak var weakObserver = observer
+    let observerContainer = WeakContainer(containing: observer)
 
     let propertyPathObserverID = UUID()
 
@@ -289,7 +286,7 @@ public final class LensModel<
           fatalError("Received value after deallocation")
         }
 
-        guard let observer = weakObserver else {
+        guard let observer = observerContainer.weaklyHeldInstance else {
           self.observers[propertyPathObserverID] = nil
           return
         }
@@ -303,7 +300,7 @@ public final class LensModel<
           fatalError("Received change after deallocation")
         }
 
-        guard let observer = weakObserver else {
+        guard let observer = observerContainer.weaklyHeldInstance else {
           self.observers[propertyPathObserverID] = nil
           return
         }
@@ -319,6 +316,6 @@ public final class LensModel<
 
     let modelObserver = propertyPathObserver.modelObserver
     self.observers[propertyPathObserverID] = propertyPathObserver
-    model.add(modelObserver)
+    await model.add(modelObserver)
   }
 }

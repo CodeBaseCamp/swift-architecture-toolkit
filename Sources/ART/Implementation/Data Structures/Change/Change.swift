@@ -77,6 +77,7 @@ public struct Change<T: Equatable>: Equatable {
 }
 
 extension Change: Codable where T: Codable {}
+extension Change: Sendable where T: Sendable {}
 
 public extension Change {
   /// Executes the given `closure` if the receiver constitutes a change of the given `keyPath`.

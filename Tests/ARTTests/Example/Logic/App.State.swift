@@ -5,7 +5,7 @@ import ART
 import Foundation
 
 extension App {
-  struct ArbitraryDownloadableResource: Codable, Equatable {}
+  struct ArbitraryDownloadableResource: Codable, Equatable, Sendable {}
 
   struct State: StateProtocol {
     var downloadedData: ArbitraryDownloadableResource?

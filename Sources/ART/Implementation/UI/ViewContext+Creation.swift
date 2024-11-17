@@ -3,7 +3,7 @@
 public extension ViewContext {
   // MARK: ViewContext
 
-  func context<OtherModel: Equatable>(
+  func context<OtherModel: Equatable & Sendable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventClosure: @escaping @autoclosure () -> Event
   ) -> ViewContext<OtherModel, Event, Coeffects> {
@@ -12,20 +12,20 @@ public extension ViewContext {
 
   // MARK: StaticViewContext
 
-  func context<OtherModel: Equatable>(
+  func context<OtherModel: Equatable & Sendable>(
     _ modelClosure: @escaping @autoclosure () -> OtherModel
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
     return self.context({ _ in modelClosure() }, { $0 })
   }
 
-  func context<OtherModel: Equatable>(
+  func context<OtherModel: Equatable & Sendable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventClosure: @escaping @autoclosure () -> Event
   ) -> StaticViewContext<OtherModel, Event, Coeffects> {
     return self.context(modelTransformation, { _ in eventClosure() })
   }
 
-  func context<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable & Sendable, OtherEvent: Equatable>(
     _ modelClosure: @escaping @autoclosure () -> OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {
@@ -44,7 +44,7 @@ public extension ViewContext {
     return self.context({ $0 }, eventTransformation)
   }
 
-  func context<OtherModel: Equatable, OtherEvent: Equatable>(
+  func context<OtherModel: Equatable & Sendable, OtherEvent: Equatable>(
     _ modelTransformation: @escaping (Model) -> OtherModel,
     _ eventTransformation: @escaping (OtherEvent) -> Event
   ) -> StaticViewContext<OtherModel, OtherEvent, Coeffects> {
@@ -56,7 +56,7 @@ public extension ViewContext {
     }
   }
 
-  func context<OtherModel: Equatable>(
+  func context<OtherModel: Equatable & Sendable>(
     _ modelTransformation: @escaping (Model) -> OtherModel
   ) -> StaticViewContext<OtherModel, Never, Coeffects> {
     return StaticViewContext<OtherModel, Never, Coeffects>(
@@ -65,7 +65,7 @@ public extension ViewContext {
     ) { _ in }
   }
 
-  func context<OtherModel: Equatable>(
+  func context<OtherModel: Equatable & Sendable>(
     _ model: OtherModel
   ) -> StaticViewContext<OtherModel, Never, Coeffects> {
     return StaticViewContext<OtherModel, Never, Coeffects>(

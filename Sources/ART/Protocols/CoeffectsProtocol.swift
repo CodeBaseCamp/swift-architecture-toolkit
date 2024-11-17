@@ -8,19 +8,24 @@ public protocol CoeffectsProtocol: Sendable {
 }
 
 /// Protocol implemented by objects providing default coeffects.
-public protocol DefaultCoeffectsProtocol {
+public protocol DefaultCoeffectsProtocol: Sendable {
   // Returns the URL of the `NSTemporaryDirectory` directory.
+  @Sendable
   func temporaryDirectory() -> URL
 
   // Returns the URL of the user's document directory.
+  @Sendable
   func documentDirectory() -> URL
 
   // Returns the currently set locale.
+  @Sendable
   func currentLocale() -> Locale
 
   // Returns the current date.
+  @Sendable
   func currentDate() -> Date
 
   // Returns a new `UUID`.
+  @Sendable
   func newUUID() -> UUID
 }

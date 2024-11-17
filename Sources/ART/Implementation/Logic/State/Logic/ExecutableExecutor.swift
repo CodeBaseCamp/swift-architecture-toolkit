@@ -21,7 +21,7 @@ public protocol ExecutableExecutor {
   func executeSequentially(_ executables: [Executable]) async -> [ExecutableResult]
 
   /// Handles the given `requests` in a single transaction.
-  nonisolated func handleInSingleTransaction(_ requests: [Request])
+  func handleInSingleTransaction(_ requests: [Request]) async
 }
 
 public extension ExecutableExecutor {
@@ -30,15 +30,8 @@ public extension ExecutableExecutor {
     await self.executeSequentially([executable])
   }
 
-  /// Executes the given `executable` asynchronously.
-  func executeAsynchronously(_ executable: Executable) {
-    Task {
-      await self.execute(executable)
-    }
-  }
-
   /// Handles the given `request`.
-  nonisolated func handle(_ request: Request) {
-    self.handleInSingleTransaction([request])
+  func handle(_ request: Request) async {
+    await self.handleInSingleTransaction([request])
   }
 }

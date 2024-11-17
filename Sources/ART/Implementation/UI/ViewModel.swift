@@ -5,7 +5,7 @@ import Foundation
 /// Protocol implemented by objects serving as models of corresponding views.
 public protocol ViewModel: Equatable {
   /// State from which this instance is created.
-  associatedtype State: Equatable
+  associatedtype State: Equatable & Sendable
 
   /// ID whose change indicates the necessity to update the view described by this instance as well
   /// as all its subviews.
