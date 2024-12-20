@@ -84,10 +84,8 @@ public class ViewContext<
       },
       change: {
         let model = requiredLet($0.current, "Must not be nil")
-        Task {
-          await MainActor.run {
-            context.wrappingModel = .init(id: model.id, model: model)
-          }
+        DispatchQueue.main.async {
+          context.wrappingModel = .init(id: model.id, model: model)
         }
       }
     )
